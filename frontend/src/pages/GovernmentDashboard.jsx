@@ -1,0 +1,1435 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  BarChart3, 
+  ShieldAlert, 
+  CheckCircle2, 
+  Award, 
+  Building2, 
+  GraduationCap, 
+  Sparkles, 
+  AlertTriangle, 
+  Clock, 
+  ExternalLink,
+  Layers,
+  Filter,
+  FileCheck,
+  TrendingUp,
+  RefreshCw,
+  Download,
+  PlusCircle,
+  UserPlus,
+  Copy,
+  Check,
+  X,
+  Users
+} from 'lucide-react';
+import api from '../services/api';
+import DemoDisclaimer from '../components/common/DemoDisclaimer';
+import GenerateReportModal from '../components/common/GenerateReportModal';
+
+const GovernmentDashboard = () => {
+  const [activeTab, setActiveTab] = useState('overview'); // overview, escalations, verification, institutions, manage, briefing
+  const [analytics, setAnalytics] = useState(null);
+  const [escalations, setEscalations] = useState([]);
+  const [pendingOutcomes, setPendingOutcomes] = useState([]);
+  const [universities, setUniversities] = useState([]);
+  const [industryPartners, setIndustryPartners] = useState([]);
+  const [patterns, setPatterns] = useState([]);
+  const [scanningPatterns, setScanningPatterns] = useState(false);
+  const [patternFilter, setPatternFilter] = useState('active'); // 'active', 'acknowledged', 'all'
+  const [briefing, setBriefing] = useState(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [districtBriefing, setDistrictBriefing] = useState(null);
+  const [briefingFetching, setBriefingFetching] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  // Filters
+  const [districts, setDistricts] = useState([]);
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+
+  // Report generation modal
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  // Directory & Onboarding (Feature B)
+  const [directory, setDirectory] = useState({ universities: [], industry_partners: [], validation_officers: [], districts: [] });
+  const [directoryLoading, setDirectoryLoading] = useState(false);
+  const [manageSubTab, setManageSubTab] = useState('universities'); // universities, industry, officers
+
+  // Modals
+  const [showUniModal, setShowUniModal] = useState(false);
+  const [showIndModal, setShowIndModal] = useState(false);
+  const [showOfficerModal, setShowOfficerModal] = useState(false);
+  const [onboardSuccess, setOnboardSuccess] = useState(null);
+  const [copiedPass, setCopiedPass] = useState(false);
+
+  // Form states
+  const [uniForm, setUniForm] = useState({ university_name: '', district_id: '', coordinator_name: '', coordinator_email: '' });
+  const [indForm, setIndForm] = useState({ partner_name: '', partner_type: 'large_industry', csr_focus_areas: '', district_id: '', contact_name: '', contact_email: '' });
+  const [officerForm, setOfficerForm] = useState({ officer_name: '', officer_email: '', district_id: '' });
+  const [formSubmitting, setFormSubmitting] = useState(false);
+
+  const loadAll = async () => {
+    setLoading(true);
+    setFetchError(null);
+    try {
+      const [distRes, analRes, escRes, outRes, uniRes, indRes, patRes] = await Promise.all([
+        api.get('/districts'),
+        api.get(`/admin/analytics/overview${selectedDistrict ? `?district_id=${selectedDistrict}` : ''}`),
+        api.get('/admin/escalations'),
+        api.get('/admin/outcomes/pending-verification'),
+        api.get('/admin/universities'),
+        api.get('/admin/industry-partners'),
+        api.get('/admin/patterns')
+      ]);
+      setDistricts(distRes.data || []);
+      setAnalytics(analRes.data || {});
+      setEscalations(escRes.data || []);
+      setPendingOutcomes(outRes.data || []);
+      setUniversities(uniRes.data || []);
+      setIndustryPartners(indRes.data || []);
+      setPatterns(patRes.data || []);
+    } catch (err) {
+      console.error("Error loading admin dashboard", err);
+      setFetchError(err.response?.data?.detail || err.message || "Failed to fetch analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAcknowledgePattern = async (patternId) => {
+    try {
+      await api.patch(`/admin/patterns/${patternId}/acknowledge`);
+      setPatterns(prev => prev.map(p => p.id === patternId ? { ...p, status: 'acknowledged' } : p));
+    } catch (err) {
+      alert("Error acknowledging pattern: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleScanPatterns = async () => {
+    setScanningPatterns(true);
+    try {
+      await api.post('/admin/patterns/scan');
+      const res = await api.get('/admin/patterns');
+      setPatterns(res.data || []);
+    } catch (err) {
+      alert("Error scanning cross-district patterns: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setScanningPatterns(false);
+    }
+  };
+
+  const loadDirectory = async () => {
+    setDirectoryLoading(true);
+    try {
+      const res = await api.get('/admin/directory');
+      setDirectory(res.data);
+    } catch (err) {
+      console.error("Failed to load directory", err);
+    } finally {
+      setDirectoryLoading(false);
+    }
+  };
+
+  const fetchDistrictBriefing = async (force = false) => {
+    setBriefingFetching(true);
+    try {
+      const q = selectedDistrict ? `district_id=${selectedDistrict}&force_refresh=${force}` : `force_refresh=${force}`;
+      const res = await api.get(`/admin/analytics/briefing?${q}`);
+      setDistrictBriefing(res.data);
+    } catch (err) {
+      console.error("Failed to load district briefing", err);
+    } finally {
+      setBriefingFetching(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAll();
+    fetchDistrictBriefing(false);
+  }, [selectedDistrict]);
+
+  useEffect(() => {
+    if (activeTab === 'manage') {
+      loadDirectory();
+    }
+  }, [activeTab]);
+
+  const handleFetchBriefing = async () => {
+    setBriefingLoading(true);
+    try {
+      const res = await api.get(`/admin/briefing${selectedDistrict ? `?district_id=${selectedDistrict}` : ''}`);
+      setBriefing(res.data);
+    } catch (err) {
+      alert("Error generating state briefing note: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setBriefingLoading(false);
+    }
+  };
+
+  const handleVerifyOutcome = async (id, action) => {
+    try {
+      await api.patch(`/admin/outcomes/${id}/verify?action=${action}`);
+      alert(action === 'approve' 
+        ? "Attestation recorded. Outcome successfully verified & published to public registry." 
+        : "Outcome claim rejected."
+      );
+      loadAll();
+    } catch (err) {
+      alert("Verification error: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  // Onboarding submissions
+  const handleOnboardUniversity = async (e) => {
+    e.preventDefault();
+    setFormSubmitting(true);
+    try {
+      const payload = {
+        university_name: uniForm.university_name,
+        district_id: parseInt(uniForm.district_id),
+        coordinator_name: uniForm.coordinator_name,
+        coordinator_email: uniForm.coordinator_email
+      };
+      const res = await api.post('/admin/onboard/university', payload);
+      setShowUniModal(false);
+      setUniForm({ university_name: '', district_id: '', coordinator_name: '', coordinator_email: '' });
+      setOnboardSuccess({
+        role: 'University Coordinator',
+        name: res.data.coordinator_name,
+        entity: res.data.university_name,
+        email: res.data.coordinator_email,
+        tempPassword: res.data.temporary_password,
+        note: 'Shodhganga research expertise graph pre-populated with departments & faculty.'
+      });
+      loadDirectory();
+      loadAll();
+    } catch (err) {
+      alert("Onboarding error: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const handleOnboardIndustry = async (e) => {
+    e.preventDefault();
+    setFormSubmitting(true);
+    try {
+      const areas = indForm.csr_focus_areas.split(',').map(s => s.trim()).filter(Boolean);
+      const payload = {
+        partner_name: indForm.partner_name,
+        partner_type: indForm.partner_type,
+        csr_focus_areas: areas,
+        district_id: indForm.district_id ? parseInt(indForm.district_id) : null,
+        contact_name: indForm.contact_name,
+        contact_email: indForm.contact_email
+      };
+      const res = await api.post('/admin/onboard/industry', payload);
+      setShowIndModal(false);
+      setIndForm({ partner_name: '', partner_type: 'large_industry', csr_focus_areas: '', district_id: '', contact_name: '', contact_email: '' });
+      setOnboardSuccess({
+        role: 'Industry / CSR Lead',
+        name: res.data.contact_name,
+        entity: res.data.partner_name,
+        email: res.data.contact_email,
+        tempPassword: res.data.temporary_password,
+        note: 'Eligible for CSR proposal review and bi-lateral IP agreements.'
+      });
+      loadDirectory();
+      loadAll();
+    } catch (err) {
+      alert("Onboarding error: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const handleOnboardOfficer = async (e) => {
+    e.preventDefault();
+    setFormSubmitting(true);
+    try {
+      const payload = {
+        officer_name: officerForm.officer_name,
+        officer_email: officerForm.officer_email,
+        district_id: parseInt(officerForm.district_id)
+      };
+      const res = await api.post('/admin/onboard/validation-officer', payload);
+      setShowOfficerModal(false);
+      setOfficerForm({ officer_name: '', officer_email: '', district_id: '' });
+      setOnboardSuccess({
+        role: 'District STI Nodal Officer',
+        name: res.data.officer_name,
+        entity: res.data.district_name,
+        email: res.data.officer_email,
+        tempPassword: res.data.temporary_password,
+        note: 'Assigned to district validation queue with 48-hour SLA clock.'
+      });
+      loadDirectory();
+    } catch (err) {
+      alert("Onboarding error: " + (err.response?.data?.detail || err.message));
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  // Safe Loading Guard (Fix 5 Crash Prevention)
+  if (loading && !analytics) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <RefreshCw className="w-10 h-10 text-teal animate-spin" />
+        <div className="text-center">
+          <h3 className="text-base font-bold text-navy">Loading State STI Administration Portal...</h3>
+          <p className="text-xs text-slate-500 mt-1">Aggregating statewide telemetry, SLA queues, and institutional indexes</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error Guard (Fix 5 Crash Prevention)
+  if (fetchError && !analytics) {
+    return (
+      <div className="max-w-xl mx-auto my-16 p-8 bg-white rounded-2xl border border-red-200 text-center space-y-4 shadow-sm">
+        <AlertTriangle className="w-10 h-10 text-red-500 mx-auto" />
+        <h3 className="text-base font-bold text-navy">Unable to load STI Analytics</h3>
+        <p className="text-xs text-slate-600">{fetchError}</p>
+        <button 
+          onClick={loadAll} 
+          className="px-5 py-2.5 bg-navy text-white rounded-xl text-xs font-bold hover:bg-navy-light transition-colors"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Top Banner */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div>
+          <div className="flex items-center space-x-2 text-xs font-bold text-teal uppercase tracking-wider mb-1">
+            <BarChart3 className="w-4 h-4" />
+            <span>State Directorate of Higher & Technical Education</span>
+          </div>
+          <h1 className="text-2xl font-heading font-extrabold text-navy">
+            Jharkhand Societal STI Oversight Dashboard
+          </h1>
+          <p className="text-slate-600 text-xs sm:text-sm mt-1">
+            Real-time analytics across districts, SLA escalation alerts, institutional trust indexes, and independent outcome verification.
+          </p>
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* District Filter */}
+          <div className="flex items-center space-x-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200">
+            <span className="text-[11px] font-bold text-slate-500 pl-2">Scope:</span>
+            <select
+              value={selectedDistrict}
+              onChange={e => setSelectedDistrict(e.target.value)}
+              className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal"
+            >
+              <option value="">All Jharkhand State</option>
+              {districts.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Feature A: Download Activity Report PDF */}
+          <div>
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-navy hover:bg-navy-light text-white text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
+              title="Generate State Executive Progress Report PDF"
+            >
+              <Download className="w-3.5 h-3.5 text-teal" />
+              <span>Generate Executive Report</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Illustrative Entities Disclaimer */}
+      <DemoDisclaimer />
+
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-slate-200 space-x-2 sm:space-x-4 overflow-x-auto">
+        {[
+          { id: 'overview', label: 'Analytics Overview', icon: TrendingUp },
+          { 
+            id: 'escalations', 
+            label: `SLA & Patterns (${escalations.length + patterns.filter(p => p.status === 'active').length})`, 
+            icon: AlertTriangle, 
+            alert: escalations.length > 0 || patterns.some(p => p.status === 'active') 
+          },
+          { id: 'verification', label: `Outcome Verification (${pendingOutcomes.length})`, icon: Award, alert: pendingOutcomes.length > 0 },
+          { id: 'institutions', label: 'HEIs & CSR Partners', icon: Building2 },
+          { id: 'manage', label: 'Manage & Directory', icon: Users },
+          { id: 'briefing', label: 'Executive AI Briefing', icon: Sparkles }
+        ].map(tab => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center space-x-2 transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'border-navy text-navy'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              <Icon className="w-4 h-4 text-teal" />
+              <span>{tab.label}</span>
+              {tab.alert && (
+                <span className="w-2 h-2 rounded-full bg-red-flagged animate-pulse"></span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* TAB 1: OVERVIEW */}
+      {activeTab === 'overview' && analytics && (
+        <div className="space-y-6">
+          {/* Top AI District Briefing Note Component */}
+          <div className="bg-gradient-to-r from-teal/10 via-white to-slate-50 border border-teal/30 rounded-2xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-teal/20 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-teal text-navy flex items-center justify-center font-bold shadow-inner">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-heading font-extrabold text-navy flex items-center space-x-2">
+                    <span>District Executive Briefing Synthesis</span>
+                    <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-teal/20 text-navy font-mono">
+                      {districtBriefing?.district_name || 'Jharkhand State'}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Live autonomous AI briefing generated from field submissions, DVO queues, and researcher matches
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                {districtBriefing && (
+                  <div className="text-right hidden sm:block">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                      districtBriefing.is_cached ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {districtBriefing.is_cached ? '⚡ Cached (24h TTL)' : '✨ Live Synthesized'}
+                    </span>
+                    <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      {districtBriefing.generated_at ? new Date(districtBriefing.generated_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={() => fetchDistrictBriefing(true)}
+                  disabled={briefingFetching}
+                  className="px-3.5 py-2 rounded-lg bg-navy hover:bg-navy-light text-white text-xs font-semibold flex items-center space-x-1.5 transition-colors disabled:opacity-50 shadow-sm"
+                  title="Force re-generation with AI"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-teal ${briefingFetching ? 'animate-spin' : ''}`} />
+                  <span>{briefingFetching ? 'Generating...' : 'Regenerate'}</span>
+                </button>
+              </div>
+            </div>
+
+            {briefingFetching ? (
+              <div className="py-8 text-center space-y-2">
+                <RefreshCw className="w-6 h-6 text-teal animate-spin mx-auto" />
+                <p className="text-xs text-slate-600 font-medium">
+                  Synthesizing real-time district telemetry with AI...
+                </p>
+              </div>
+            ) : (districtBriefing?.briefing_text || districtBriefing?.summary_text) ? (
+              <div className="text-xs text-slate-800 leading-relaxed whitespace-pre-line font-sans bg-white/70 backdrop-blur-sm p-4 rounded-xl border border-slate-200">
+                {districtBriefing.briefing_text || districtBriefing.summary_text}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-500 py-4 text-center">
+                Click "Regenerate" to generate an executive brief for this district.
+              </div>
+            )}
+          </div>
+
+          {/* Top Key Performance Indicators */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Total Submissions</span>
+              <div className="text-2xl font-black font-heading text-navy">{analytics?.total_submissions || 0}</div>
+              <div className="text-[11px] text-slate-500">Citizen & Panchayat reports</div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400">District Validated</span>
+              <div className="text-2xl font-black font-heading text-teal-dark">{analytics?.validated_count || 0}</div>
+              <div className="text-[11px] text-green-verified font-medium">Passed field pre-screen</div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400">HEI Research Teams</span>
+              <div className="text-2xl font-black font-heading text-blue-700">{analytics?.in_research_count || 0}</div>
+              <div className="text-[11px] text-slate-500">Faculty-student teams</div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400">CSR Co-Funded</span>
+              <div className="text-2xl font-black font-heading text-purple-700">{analytics?.in_execution_count || 0}</div>
+              <div className="text-[11px] text-slate-500">Active industry pilots</div>
+            </div>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Full Deployments</span>
+              <div className="text-2xl font-black font-heading text-green-verified">{analytics?.deployed_count || 0}</div>
+              <div className="text-[11px] text-slate-500">Grassroots operational</div>
+            </div>
+          </div>
+
+          {/* Domain Distribution Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h3 className="font-heading font-bold text-sm text-navy">
+                Domain-Wise Societal Problem Distribution
+              </h3>
+              <div className="space-y-2.5">
+                {Object.entries(analytics?.domain_distribution || {}).map(([key, val]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="capitalize text-slate-700">{key.replace(/_/g, ' ')}</span>
+                      <span className="font-bold text-navy">{val}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-teal rounded-full" 
+                        style={{ width: `${Math.min(100, ((val || 0) / (analytics?.total_submissions || 1)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <h3 className="font-heading font-bold text-sm text-navy">
+                District-Wise Submission Concentration
+              </h3>
+              <div className="space-y-2.5">
+                {Object.entries(analytics?.district_distribution || {}).map(([key, val]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-700 font-medium">{key}</span>
+                      <span className="font-bold text-navy">{val}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-navy rounded-full" 
+                        style={{ width: `${Math.min(100, ((val || 0) / (analytics?.total_submissions || 1)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: SLA ESCALATIONS & SYSTEMIC PATTERNS */}
+      {activeTab === 'escalations' && (
+        <div className="space-y-8">
+          {/* Enhancement 2: Cross-District Pattern Alerts */}
+          <div className="bg-white border border-purple-200 rounded-2xl p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-purple-100 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-heading font-extrabold text-navy flex items-center space-x-2">
+                    <span>Cross-District Systemic Pattern Alerts</span>
+                    <span className="text-[11px] font-normal px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 font-mono font-bold">
+                      {patterns.filter(p => p.status === 'active').length} Active
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Autonomous AI clustering across validated district challenges. Surfaces systemic challenges spanning 3+ distinct districts requiring state-level policy action or coordinated research.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 self-end sm:self-auto">
+                <button
+                  onClick={handleScanPatterns}
+                  disabled={scanningPatterns}
+                  className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors disabled:opacity-50 shadow-sm"
+                  title="Run AI pattern clustering across all validated challenges"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${scanningPatterns ? 'animate-spin' : ''}`} />
+                  <span>{scanningPatterns ? 'Clustering...' : 'Scan Patterns Now'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Pattern Sub-Filters */}
+            <div className="flex items-center space-x-2 border-b border-slate-100 pb-3">
+              {[
+                { id: 'active', label: `Active Alerts (${patterns.filter(p => p.status === 'active').length})` },
+                { id: 'acknowledged', label: `Acknowledged (${patterns.filter(p => p.status === 'acknowledged').length})` },
+                { id: 'all', label: `All Patterns (${patterns.length})` }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setPatternFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    patternFilter === f.id
+                      ? 'bg-purple-100 text-purple-900'
+                      : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Pattern Items Grid */}
+            {(() => {
+              const filteredPatterns = patterns.filter(p => {
+                if (patternFilter === 'active') return p.status === 'active';
+                if (patternFilter === 'acknowledged') return p.status === 'acknowledged';
+                return true;
+              });
+
+              if (filteredPatterns.length === 0) {
+                return (
+                  <div className="p-8 rounded-xl border border-dashed border-slate-200 text-center space-y-1.5 bg-slate-50/50">
+                    <Sparkles className="w-6 h-6 text-purple-400 mx-auto" />
+                    <div className="text-xs font-bold text-navy">No systemic cross-district patterns currently flagged</div>
+                    <p className="text-[11px] text-slate-500 max-w-md mx-auto">
+                      Challenges are continuously scanned. When 3 or more distinct districts report similar challenges in the same sector, a systemic pattern alert will appear here.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 gap-4">
+                  {filteredPatterns.map(p => (
+                    <div
+                      key={p.id}
+                      className={`p-5 rounded-xl border transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm ${
+                        p.status === 'active'
+                          ? 'border-purple-200 bg-gradient-to-r from-purple-50/40 via-white to-slate-50'
+                          : 'border-slate-200 bg-white opacity-85'
+                      }`}
+                    >
+                      <div className="space-y-2 max-w-3xl">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded font-mono text-[10px] font-extrabold uppercase ${
+                            p.severity === 'critical' ? 'bg-red-100 text-red-700 border border-red-200' :
+                            p.severity === 'high' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            'bg-blue-100 text-blue-800 border border-blue-200'
+                          }`}>
+                            {p.severity} Severity
+                          </span>
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-bold capitalize">
+                            {p.category.replace(/_/g, ' ')}
+                          </span>
+                          <span className="px-2.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-200 rounded-full text-[10px] font-bold">
+                            {p.district_count} Distinct Districts Affected
+                          </span>
+                          {p.status === 'active' ? (
+                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-semibold">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <span>Active Alert</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[10px] font-semibold">
+                              <Check className="w-3 h-3 text-slate-500" />
+                              <span>Acknowledged</span>
+                            </span>
+                          )}
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            Detected {new Date(p.detected_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+
+                        <h4 className="font-heading font-bold text-sm text-navy leading-snug">
+                          {p.pattern_theme}
+                        </h4>
+
+                        {p.linked_challenge_ids && p.linked_challenge_ids.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-600 pt-1">
+                            <span className="text-[11px] font-semibold text-slate-400">Linked Challenges:</span>
+                            {p.linked_challenge_ids.map(cid => (
+                              <span key={cid} className="px-2 py-0.5 bg-white rounded border border-slate-200 font-mono text-[10px] text-navy font-bold">
+                                #{cid}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-3 shrink-0 self-end md:self-center">
+                        {p.status === 'active' ? (
+                          <button
+                            onClick={() => handleAcknowledgePattern(p.id)}
+                            className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Acknowledge Pattern</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs font-semibold text-slate-400 italic">
+                            Acknowledged by State Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Automated SLA Breach Escalations */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 flex items-start space-x-3">
+            <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Automated 48-Hour SLA Breach Escalations:</span>
+              <p className="mt-0.5 text-amber-800">
+                District Validation Officers must process submissions within 48 hours. Items listed below have breached this threshold (excluding time paused while waiting for citizen clarification) and require state administrative attention.
+              </p>
+            </div>
+          </div>
+
+          {escalations.length === 0 ? (
+            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center space-y-2">
+              <CheckCircle2 className="w-8 h-8 text-green-verified mx-auto" />
+              <div className="font-bold text-sm text-navy">Zero SLA Breaches Active</div>
+              <p className="text-xs text-slate-500">All district validation queues are currently operating within the 48-hour timeline.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {escalations.map(e => (
+                <div key={e.id} className="bg-white p-5 rounded-xl border border-red-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="space-y-1 max-w-2xl">
+                    <div className="flex items-center space-x-2">
+                      <span className="px-2 py-0.5 bg-red-100 text-red-flagged rounded font-mono text-[10px] font-bold">
+                        +{e.sla_breach_hours}h Overdue
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">ID: {e.tracking_id}</span>
+                      <span className="text-xs font-bold text-teal">{e.district_name}</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-navy">{e.title}</h4>
+                    <p className="text-xs text-slate-500 capitalize">Category: {e.category.replace(/_/g, ' ')} • Age: {e.age_hours} hours in queue</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-slate-600">Priority Score</div>
+                      <div className="text-lg font-black text-navy">{e.priority_score}/100</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: OUTCOME VERIFICATION */}
+      {activeTab === 'verification' && (
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 flex items-start space-x-3">
+            <Award className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Independent State Outcome Verification:</span>
+              <p className="mt-0.5 text-blue-800">
+                To prevent false claims of success, academic teams must submit test evidence, deployment certificates, or patent filings for state verification before projects can be certified and published to the Innovation Registry.
+              </p>
+            </div>
+          </div>
+
+          {pendingOutcomes.length === 0 ? (
+            <div className="bg-white p-12 rounded-xl border border-slate-200 text-center space-y-2">
+              <CheckCircle2 className="w-8 h-8 text-green-verified mx-auto" />
+              <div className="font-bold text-sm text-navy">No Outcomes Awaiting Verification</div>
+              <p className="text-xs text-slate-500">All submitted project outcome claims have been reviewed.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingOutcomes.map(o => (
+                <div key={o.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-teal/10 text-teal-dark font-bold text-[10px] uppercase">
+                        {o.outcome_type.replace(/_/g, ' ')}
+                      </span>
+                      <h4 className="font-bold text-base text-navy mt-1">{o.proposal_title}</h4>
+                      <p className="text-xs text-slate-400">Submitting HEI: {o.university_name} • Linked Challenge: {o.challenge_title}</p>
+                    </div>
+                    <span className="text-[11px] text-slate-400 font-mono">Claimed: {new Date(o.created_at).toLocaleDateString()}</span>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-lg text-xs text-slate-700">
+                    <span className="font-bold text-slate-900 block mb-1">Claim Statement & Beneficiary Impact:</span>
+                    {o.claim_description}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2">
+                    {o.supporting_document_url ? (
+                      <a 
+                        href={o.supporting_document_url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="inline-flex items-center space-x-1.5 text-xs text-teal font-bold hover:underline"
+                      >
+                        <FileCheck className="w-4 h-4" />
+                        <span>Inspect Field Evidence / Test Certificate</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-400 italic">No external document attached</span>
+                    )}
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleVerifyOutcome(o.id, 'reject')}
+                        className="px-4 py-2 rounded-lg border border-red-300 text-red-600 hover:bg-red-50 text-xs font-bold transition-colors"
+                      >
+                        Reject Claim
+                      </button>
+                      <button
+                        onClick={() => handleVerifyOutcome(o.id, 'approve')}
+                        className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors flex items-center space-x-1 shadow-sm"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Verify & Publish to Registry</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 4: HEIs & CSR PARTNERS */}
+      {activeTab === 'institutions' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-bold text-sm text-navy flex items-center space-x-2">
+                <GraduationCap className="w-4 h-4 text-teal" />
+                <span>Registered Academic Institutions ({universities.length})</span>
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {universities.map(u => (
+                <div key={u.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-xs text-navy">{u.name}</div>
+                    <div className="text-[11px] text-slate-400">{u.district_name} • {u.department_count} Departments</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-heading font-black text-navy">{u.trust_score}/100</div>
+                    <div className="text-[10px] text-green-verified font-semibold capitalize">{u.registration_status}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-bold text-sm text-navy flex items-center space-x-2">
+                <Building2 className="w-4 h-4 text-teal" />
+                <span>Corporate & Industry Partners ({industryPartners.length})</span>
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {industryPartners.map(p => (
+                <div key={p.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                  <div>
+                    <div className="font-bold text-xs text-navy">{p.name}</div>
+                    <div className="text-[11px] text-slate-400 capitalize">{p.partner_type.replace(/_/g, ' ')} • {p.district_name}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-heading font-black text-navy">{p.trust_score}/100</div>
+                    <div className="text-[10px] text-teal font-semibold">{p.engagement_count} Engagements</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: MANAGE & DIRECTORY (NEW FEATURE B) */}
+      {activeTab === 'manage' && (
+        <div className="space-y-6">
+          {/* Header & Sub-Tabs */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="text-lg font-heading font-bold text-navy">
+                Institutional Directory & Onboarding Hub
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Register new universities (with automatic Shodhganga research graph bootstrap), industry CSR sponsors, and DVOs.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setShowUniModal(true)}
+                className="px-3 py-2 bg-teal hover:bg-teal-dark text-navy hover:text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Onboard University</span>
+              </button>
+              <button
+                onClick={() => setShowIndModal(true)}
+                className="px-3 py-2 bg-navy hover:bg-navy-light text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-teal" />
+                <span>Onboard Industry</span>
+              </button>
+              <button
+                onClick={() => setShowOfficerModal(true)}
+                className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-colors shadow-sm"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+                <span>Onboard DVO</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Sub-nav switcher */}
+          <div className="flex space-x-2 border-b border-slate-200 pb-2">
+            {[
+              { id: 'universities', label: `Universities (${directory.universities?.length || 0})` },
+              { id: 'industry', label: `Industry Partners (${directory.industry_partners?.length || 0})` },
+              { id: 'officers', label: `Validation Officers (${directory.validation_officers?.length || 0})` },
+            ].map(st => (
+              <button
+                key={st.id}
+                onClick={() => setManageSubTab(st.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  manageSubTab === st.id ? 'bg-navy text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
+
+          {directoryLoading ? (
+            <div className="py-12 text-center">
+              <RefreshCw className="w-6 h-6 text-teal animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 mt-2 font-medium">Refreshing institutional registry...</p>
+            </div>
+          ) : (
+            <>
+              {/* Universities Directory Table */}
+              {manageSubTab === 'universities' && (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold">
+                      <tr>
+                        <th className="py-3 px-4">University / HEI</th>
+                        <th className="py-3 px-4">District</th>
+                        <th className="py-3 px-4">Coordinator Contact</th>
+                        <th className="py-3 px-4">Research Depts</th>
+                        <th className="py-3 px-4 text-right">Trust Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {directory.universities?.map(u => (
+                        <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-navy">{u.name}</td>
+                          <td className="py-3 px-4">{u.district_name}</td>
+                          <td className="py-3 px-4">
+                            <div className="font-medium text-slate-800">{u.coordinator_name}</div>
+                            <div className="text-[11px] text-slate-400 font-mono">{u.coordinator_email}</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-[10px]">
+                              {u.department_count} Departments
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-black font-heading text-navy">
+                            {u.trust_score}/100
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Industry Partners Directory Table */}
+              {manageSubTab === 'industry' && (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold">
+                      <tr>
+                        <th className="py-3 px-4">Corporate Partner</th>
+                        <th className="py-3 px-4">Category</th>
+                        <th className="py-3 px-4">CSR Focus Areas</th>
+                        <th className="py-3 px-4">Contact Person</th>
+                        <th className="py-3 px-4 text-right">Trust Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {directory.industry_partners?.map(ip => (
+                        <tr key={ip.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-navy">{ip.name}</td>
+                          <td className="py-3 px-4 capitalize text-slate-500">{ip.partner_type.replace(/_/g, ' ')}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap gap-1">
+                              {ip.csr_focus_areas?.map((fa, i) => (
+                                <span key={i} className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 text-[10px] font-medium">
+                                  {fa}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="font-medium text-slate-800">{ip.contact_name}</div>
+                            <div className="text-[11px] text-slate-400 font-mono">{ip.contact_email}</div>
+                          </td>
+                          <td className="py-3 px-4 text-right font-black font-heading text-navy">
+                            {ip.trust_score}/100
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Validation Officers Directory Table */}
+              {manageSubTab === 'officers' && (
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase text-[10px] font-bold">
+                      <tr>
+                        <th className="py-3 px-4">Nodal Officer</th>
+                        <th className="py-3 px-4">Official Email</th>
+                        <th className="py-3 px-4">Assigned District</th>
+                        <th className="py-3 px-4">Role / Scope</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
+                      {directory.validation_officers?.map(vo => (
+                        <tr key={vo.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="py-3 px-4 font-bold text-navy">{vo.name}</td>
+                          <td className="py-3 px-4 font-mono text-[11px] text-slate-600">{vo.email}</td>
+                          <td className="py-3 px-4 font-semibold text-teal-dark">{vo.district_name}</td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-bold text-[10px]">
+                              District Field Validator (48h SLA)
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* TAB 6: EXECUTIVE BRIEFING NOTE */}
+      {activeTab === 'briefing' && (
+        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <span className="text-xs font-bold text-teal uppercase tracking-wider">Executive Synthesis</span>
+              <h3 className="text-lg font-heading font-bold text-navy mt-0.5">
+                Daily Societal Innovation Briefing Note
+              </h3>
+            </div>
+            <button
+              onClick={handleFetchBriefing}
+              disabled={briefingLoading}
+              className="px-4 py-2 rounded-lg bg-navy hover:bg-navy-light text-white font-bold text-xs transition-colors shadow-sm flex items-center space-x-2"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-teal" />
+              <span>{briefingLoading ? 'Synthesizing Briefing...' : 'Generate Executive Briefing'}</span>
+            </button>
+          </div>
+
+          {briefing ? (
+            <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 space-y-3">
+              <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold">
+                Briefing for: <strong>{briefing.district_name}</strong>
+              </div>
+              <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-line font-sans">
+                {briefing.briefing_text || briefing.summary_text || briefing.briefing}
+              </div>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-slate-500 text-xs">
+              Click the button above to generate an executive briefing note synthesizing regional societal stress points and research deployment progress.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL 1: ONBOARD UNIVERSITY */}
+      {showUniModal && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-bold text-base text-navy flex items-center space-x-2">
+                <GraduationCap className="w-5 h-5 text-teal" />
+                <span>Onboard New University</span>
+              </h3>
+              <button onClick={() => setShowUniModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Onboarding triggers an automatic Shodhganga research expertise graph bootstrap to index departments, faculty profiles, and thematic domain tags.
+            </p>
+
+            <form onSubmit={handleOnboardUniversity} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">University / Institute Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Vinoba Bhave University"
+                  value={uniForm.university_name}
+                  onChange={e => setUniForm({ ...uniForm, university_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">District Location *</label>
+                <select
+                  required
+                  value={uniForm.district_id}
+                  onChange={e => setUniForm({ ...uniForm, district_id: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                >
+                  <option value="">Select District</option>
+                  {(directory.districts?.length ? directory.districts : districts).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Coordinator Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Dr. Rajesh Kumar"
+                  value={uniForm.coordinator_name}
+                  onChange={e => setUniForm({ ...uniForm, coordinator_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Coordinator Official Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. rkumar@vbu.ac.in"
+                  value={uniForm.coordinator_email}
+                  onChange={e => setUniForm({ ...uniForm, coordinator_email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowUniModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formSubmitting}
+                  className="px-4 py-2 rounded-lg bg-navy hover:bg-navy-light text-white font-bold disabled:opacity-50"
+                >
+                  {formSubmitting ? 'Bootstrapping...' : 'Onboard & Generate Login'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: ONBOARD INDUSTRY PARTNER */}
+      {showIndModal && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-bold text-base text-navy flex items-center space-x-2">
+                <Building2 className="w-5 h-5 text-teal" />
+                <span>Onboard Industry / CSR Partner</span>
+              </h3>
+              <button onClick={() => setShowIndModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleOnboardIndustry} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Organisation / Company Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Jindal Steel CSR Foundation"
+                  value={indForm.partner_name}
+                  onChange={e => setIndForm({ ...indForm, partner_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Partner Type *</label>
+                  <select
+                    value={indForm.partner_type}
+                    onChange={e => setIndForm({ ...indForm, partner_type: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                  >
+                    <option value="large_industry">Large Industry</option>
+                    <option value="sme">SME</option>
+                    <option value="psu">PSU</option>
+                    <option value="foundation">CSR Foundation</option>
+                    <option value="startup">Startup</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Base District (Optional)</label>
+                  <select
+                    value={indForm.district_id}
+                    onChange={e => setIndForm({ ...indForm, district_id: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                  >
+                    <option value="">Statewide</option>
+                    {(directory.districts?.length ? directory.districts : districts).map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">CSR Focus Areas (Comma separated) *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Water Resources, Rural Livelihoods, Renewable Energy"
+                  value={indForm.csr_focus_areas}
+                  onChange={e => setIndForm({ ...indForm, csr_focus_areas: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">CSR Lead / Contact Person *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Neha Verma"
+                  value={indForm.contact_name}
+                  onChange={e => setIndForm({ ...indForm, contact_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Contact Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. csr@jindalsteel.com"
+                  value={indForm.contact_email}
+                  onChange={e => setIndForm({ ...indForm, contact_email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowIndModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formSubmitting}
+                  className="px-4 py-2 rounded-lg bg-navy hover:bg-navy-light text-white font-bold disabled:opacity-50"
+                >
+                  {formSubmitting ? 'Registering...' : 'Register Industry Partner'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: ONBOARD VALIDATION OFFICER */}
+      {showOfficerModal && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-200 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="font-heading font-bold text-base text-navy flex items-center space-x-2">
+                <UserPlus className="w-5 h-5 text-teal" />
+                <span>Onboard District Validation Officer</span>
+              </h3>
+              <button onClick={() => setShowOfficerModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleOnboardOfficer} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Officer Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. S. P. Hansda"
+                  value={officerForm.officer_name}
+                  onChange={e => setOfficerForm({ ...officerForm, officer_name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Official NIC / Gov Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="e.g. dvo.bokaro@jh.gov.in"
+                  value={officerForm.officer_email}
+                  onChange={e => setOfficerForm({ ...officerForm, officer_email: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Jurisdiction District *</label>
+                <select
+                  required
+                  value={officerForm.district_id}
+                  onChange={e => setOfficerForm({ ...officerForm, district_id: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-teal focus:outline-none"
+                >
+                  <option value="">Select District</option>
+                  {(directory.districts?.length ? directory.districts : districts).map(d => (
+                    <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-3 flex justify-end space-x-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowOfficerModal(false)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={formSubmitting}
+                  className="px-4 py-2 rounded-lg bg-navy hover:bg-navy-light text-white font-bold disabled:opacity-50"
+                >
+                  {formSubmitting ? 'Assigning...' : 'Assign Nodal Officer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREDENTIALS SUCCESS DIALOG */}
+      {onboardSuccess && (
+        <div className="fixed inset-0 z-50 bg-navy/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-green-200 space-y-4">
+            <div className="flex items-center space-x-3 text-green-700">
+              <CheckCircle2 className="w-7 h-7" />
+              <div>
+                <h3 className="font-heading font-extrabold text-base text-navy">Participant Onboarded!</h3>
+                <p className="text-xs text-slate-500">{onboardSuccess.role}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Entity:</span>
+                <span className="font-bold text-navy">{onboardSuccess.entity}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Name:</span>
+                <span className="font-bold text-slate-700">{onboardSuccess.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Login Email:</span>
+                <span className="font-mono font-bold text-navy">{onboardSuccess.email}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white p-2 rounded border border-slate-200">
+                <span className="text-slate-400">Temporary Password:</span>
+                <div className="flex items-center space-x-2">
+                  <span className="font-mono font-bold text-teal-dark">{onboardSuccess.tempPassword}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(onboardSuccess.tempPassword);
+                      setCopiedPass(true);
+                      setTimeout(() => setCopiedPass(false), 2000);
+                    }}
+                    className="p-1 hover:bg-slate-100 rounded text-slate-500"
+                    title="Copy password"
+                  >
+                    {copiedPass ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 italic">
+              {onboardSuccess.note}
+            </p>
+
+            <button
+              onClick={() => setOnboardSuccess(null)}
+              className="w-full py-2.5 bg-navy text-white rounded-xl text-xs font-bold hover:bg-navy-light transition-colors"
+            >
+              Done & Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* GENERATE STATE ACTIVITY REPORT MODAL (Item 23) */}
+      <GenerateReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        role="Government"
+        districtName={districts.find(d => String(d.id) === String(selectedDistrict))?.name || 'All Districts'}
+      />
+    </div>
+  );
+};
+
+export default GovernmentDashboard;
