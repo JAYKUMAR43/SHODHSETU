@@ -496,3 +496,19 @@ class CitizenInfoResponsePayload(BaseModel):
     response_text: str
     photo_url: Optional[str] = None
 
+
+class SubmittedReportResponse(BaseModel):
+    id: int
+    generated_by_user_id: Optional[int] = None
+    generated_by_name: str
+    generated_by_role: str
+    period_type: str
+    period_start: Optional[datetime] = None
+    period_end: Optional[datetime] = None
+    file_url: str
+    generated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+

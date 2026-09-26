@@ -15,17 +15,73 @@ CATEGORIES = [
 ]
 
 CATEGORY_KEYWORDS = {
-    "agriculture": ["crop", "soil", "pest", "irrigation", "farming", "paddy", "fertilizer", "kisan", "yield", "drought", "seeds"],
-    "water_resources": ["water", "arsenic", "fluoride", "borewell", "pond", "dam", "drinking", "contamination", "pipeline", "drainage", "handpump"],
-    "healthcare": ["hospital", "clinic", "disease", "malnutrition", "vaccine", "doctor", "health", "maternal", "sanitation", "ambulance", "fever"],
-    "education": ["school", "teacher", "student", "classroom", "books", "literacy", "dropout", "stem", "college", "vocational"],
-    "environment": ["pollution", "forest", "mining", "dust", "effluent", "waste", "deforestation", "air quality", "biodiversity", "dumping"],
-    "energy": ["electricity", "power", "solar", "grid", "transformer", "biomass", "load shedding", "outage", "renewable"],
-    "urban_development": ["road", "traffic", "slum", "sewage", "street light", "pothole", "solid waste", "urban flooding", "encroachment"],
-    "accessibility": ["disabled", "wheelchair", "ramp", "braille", "divyang", "elderly", "sign language", "mobility", "special needs"],
-    "public_administration": ["pension", "ration", "caste certificate", "land record", "grievance", "corruption", "panchayat", "bribe", "pds"],
-    "rural_livelihoods": ["artisan", "weaving", "tussar", "silk", "lac", "minor forest produce", "self help group", "shg", "poultry", "goat", "tribal market"]
+    "agriculture": [
+        "crop", "soil", "pest", "irrigation", "farming", "paddy", "fertilizer", "kisan", "yield", "drought", "seeds",
+        "kheti", "fasal", "mitti", "keeda", "sinchai", "anaj", "khet", "urvarak", "dhan", "gehu", "paudha", "gobargas",
+        "khet-bari", "chas", "chasi", "ropa", "behan", "bichha", "kisaan", "baadi", "tora", "baba", "kado"
+    ],
+    "water_resources": [
+        "water", "arsenic", "fluoride", "borewell", "pond", "dam", "drinking", "contamination", "pipeline", "drainage", "handpump",
+        "paani", "jal", "peypani", "peene ka pani", "nal", "kua", "kuan", "talab", "chapakal", "boring", "ganda pani", "jal sankat",
+        "daah", "dahar", "chuan", "doba", "bandh", "aahar", "pokhari", "jharna", "khoro", "jor", "gadhia", "dhaas"
+    ],
+    "healthcare": [
+        "hospital", "clinic", "disease", "malnutrition", "vaccine", "doctor", "health", "maternal", "sanitation", "ambulance", "fever",
+        "aspataal", "swasthya", "bimari", "dawa", "davai", "ilaj", "rog", "poshan", "kuposhan", "tika", "chikitsa", "sehat",
+        "rua", "haspatal", "daktar", "poshan", "sahiyya", "anganwadi", "dawai", "bimar", "roga"
+    ],
+    "education": [
+        "school", "teacher", "student", "classroom", "books", "literacy", "dropout", "stem", "college", "vocational",
+        "vidyalaya", "shiksha", "padhai", "kitab", "shikshak", "chhatra", "pathshala", "kaksha", "adhyayan",
+        "ischool", "guruji", "master babu", "basta", "shiksha mantralaya"
+    ],
+    "environment": [
+        "pollution", "forest", "mining", "dust", "effluent", "waste", "deforestation", "air quality", "biodiversity", "dumping",
+        "pradushan", "jungle", "van", "dhuan", "khadan", "koyla", "ped", "hawa", "paryavaran", "kachra dumping",
+        "bir", "dhur-dhuan", "chhai", "khadan", "khorha", "jhaad", "dhur"
+    ],
+    "energy": [
+        "electricity", "power", "solar", "grid", "transformer", "biomass", "load shedding", "outage", "renewable",
+        "bijli", "batti", "urja", "taar", "andhera", "current", "solar panel", "dhoop", "roshni",
+        "chup-chup", "battie", "line kata", "voltage"
+    ],
+    "urban_development": [
+        "road", "traffic", "slum", "sewage", "street light", "pothole", "solid waste", "urban flooding", "encroachment",
+        "sadak", "gaddha", "kachra", "naali", "basti", "jaam", "gali", "pul", "puliya", "footpath",
+        "dahar", "rasta", "kado", "kichad", "dhalo"
+    ],
+    "accessibility": [
+        "disabled", "wheelchair", "ramp", "braille", "divyang", "elderly", "sign language", "mobility", "special needs",
+        "viklang", "bujurg", "vridh", "chalne me pareshani", "sahayata", "divyangjan",
+        "batha", "langda", "dekhai na dena", "sunai na dena"
+    ],
+    "public_administration": [
+        "pension", "ration", "caste certificate", "land record", "grievance", "corruption", "panchayat", "bribe", "pds",
+        "shikayat", "bhrashtachar", "praman patra", "khatian", "dakhil kharij", "mukhiya", "ghoos", "adhikar", "kotawala",
+        "panch", "pradhan", "jameen", "dastavej", "afsar"
+    ],
+    "rural_livelihoods": [
+        "artisan", "weaving", "tussar", "silk", "lac", "minor forest produce", "self help group", "shg", "poultry", "goat", "tribal market",
+        "rozgar", "kamai", "bunkar", "mahila mandal", "murgi palan", "bakri", "haat", "bazaar", "hastshilp", "lah", "jute",
+        "mahua", "kendupatta", "tassar", "sabai", "dholka", "sangh", "kam-dhandha", "sohrai", "kohbar"
+    ]
 }
+
+JHARKHAND_SYSTEM_INSTRUCTION = """
+You are the expert Societal STI Intelligence Engine for Bharat Panchyt (Government of Jharkhand).
+You are fluent in English, Hindi (Devanagari & Romanized/Hinglish), and the regional languages and dialects of Jharkhand:
+- Khortha (खोरठा)
+- Nagpuri / Sadri (नागपुरी)
+- Santhali (संथाली - Ol Chiki, Devanagari, and Latin transliteration)
+- Mundari (मुंडारी)
+- Ho (हो - Warang Chiti and transliteration)
+- Kurmali (कुड़माली)
+- Kurukh / Oraon (कुड़ुख़)
+- Magahi & Bhojpuri (मगही / भोजपुरी)
+
+Always interpret citizen complaints with deep cultural, geographical, and vernacular empathy.
+Accurately identify root societal causes even if reported in local rural idioms or mixed dialect.
+"""
 
 class GeminiService:
     def __init__(self):
@@ -37,6 +93,7 @@ class GeminiService:
         if not self.api_key:
             return None
         
+        sys_inst = system_instruction or JHARKHAND_SYSTEM_INSTRUCTION
         url = f"{self.base_url}/{model}:generateContent?key={self.api_key}"
         payload: Dict[str, Any] = {
             "contents": [{"parts": [{"text": prompt}]}],
@@ -46,9 +103,9 @@ class GeminiService:
                 "responseMimeType": "application/json"
             }
         }
-        if system_instruction:
+        if sys_inst:
             payload["systemInstruction"] = {
-                "parts": [{"text": system_instruction}]
+                "parts": [{"text": sys_inst}]
             }
 
         try:
@@ -70,7 +127,8 @@ class GeminiService:
         Classify the following citizen challenge reported in Jharkhand into exactly one of these 10 categories:
         {CATEGORIES}
         
-        Challenge text: "{description}"
+        The report may be in English, Hindi (हिन्दी), or a Jharkhand regional dialect (Khortha, Nagpuri, Santhali, Mundari, Ho, Kurmali, Kurukh).
+        Input text: "{description}"
         
         Return a JSON object with:
         "category": (one of the exact categories),
@@ -104,14 +162,16 @@ class GeminiService:
     # 2. generate_problem_brief
     def generate_problem_brief(self, text_or_transcript: str, voice_note: Optional[str] = None, language: str = "hi") -> str:
         prompt = f"""
-        You are an institutional academic analyst for ShodhSetu (Jharkhand Societal Innovation Portal).
-        Convert the following citizen-reported challenge input into a structured, academic-grade Problem Brief.
+        You are an institutional academic analyst for Bharat Panchyt (Jharkhand Societal Innovation Platform).
+        The citizen input may be in English, Hindi (Devanagari or Romanized), or any Jharkhand regional language/dialect (Khortha, Nagpuri, Santhali, Mundari, Ho, Kurmali, Kurukh).
+        Translate and synthesize the citizen-reported challenge input into a structured, academic-grade Problem Brief in English (with key vernacular terms preserved in parentheses).
+        
         Input text: "{text_or_transcript}"
-        Language: {language}
+        Source Language: {language}
         
         Format the brief with:
-        - Core Societal Problem
-        - Community Impact & Ground Reality
+        - Core Societal Problem (clear technical diagnosis of the grassroots issue)
+        - Community Impact & Ground Reality in Jharkhand
         - Key Technical & Research Questions for Universities
         - Potential Deliverables (Prototype / Field Study / Deployment)
         """
@@ -126,7 +186,7 @@ class GeminiService:
                 logger.warning(f"Gemini brief generation error: {e}")
 
         # Non-AI Fallback
-        return f"""### Structured Problem Brief (ShodhSetu Synthesizer)
+        return f"""### Structured Problem Brief (Bharat Panchyt Synthesizer)
 **Core Societal Problem:**
 {text_or_transcript[:250]}...
 
@@ -473,7 +533,7 @@ Field reports indicate persistent operational obstacles impacting local liveliho
         top_cat = district_stats.get('top_category', 'Water Resources & Environment')
         return f"""### Executive STI Briefing — {d_name} District
 **1. Societal Stress Distribution:**
-{d_name} has registered {total} citizen and panchayat-verified problem statements under ShodhSetu. The primary concentration of societal stress lies in **{top_cat}**, driven by hard-rock hydrogeology, arsenic/fluoride groundwater contamination, and seasonal agricultural distress during post-monsoon phases.
+{d_name} has registered {total} citizen and panchayat-verified problem statements under Bharat Panchyt. The primary concentration of societal stress lies in **{top_cat}**, driven by hard-rock hydrogeology, arsenic/fluoride groundwater contamination, and seasonal agricultural distress during post-monsoon phases.
 
 **2. Academic Research Mobilization:**
 Regional higher education institutions (including premier state and national institutes) have deployed multidisciplinary faculty teams. Active project teams are engaged in decentralized water purification testbeds, solar-powered agricultural value addition, and bio-remediation protocols.

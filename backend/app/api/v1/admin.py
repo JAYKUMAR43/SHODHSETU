@@ -10,11 +10,12 @@ from backend.app.models.models import (
     IndustryEngagement, OutcomeRecord, VerificationStatus, District, TrustScore, TrustOwnerType, Proposal, DistrictBriefing,
     Department, DepartmentSource, FacultyProfile, RegistrationStatus,
     CitizenConfirmationStatus, SystemicPattern, SystemicPatternStatus, OutcomeType,
-    ProjectMilestone, IndustryReviewStatus
+    ProjectMilestone, IndustryReviewStatus, SubmittedReport, PeriodType
 )
 from backend.app.schemas.schemas import (
     AnalyticsOverviewResponse, DistrictBriefingResponse,
-    OnboardUniversityRequest, OnboardIndustryRequest, OnboardValidationOfficerRequest
+    OnboardUniversityRequest, OnboardIndustryRequest, OnboardValidationOfficerRequest,
+    SubmittedReportResponse
 )
 from backend.app.services.gemini_service import gemini_service
 from backend.app.services.trust_score_service import compute_trust_score
@@ -746,4 +747,47 @@ def onboard_validation_officer(
         "district_name": district_name,
         "temporary_password": temp_password
     }
+
+@router.get("/reports", response_model=List[SubmittedReportResponse])
+def get_submitted_reports(
+    role: Optional[str] = Query(None),
+    period_type: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    entity_name: Optional[str] = Query(None),
+    current_user: User = Depends(require_roles(UserRole.GOVERNMENT)),
+    db: Session = Depends(get_db)
+):
+    """
+    Step 5: Centralized submitted reports view for State Government Directorate.
+    Sorted newest-first, filterable by role, period_type, entity_name, and search keyword.
+    """
+    query = db.query(SubmittedReport)
+
+    if role:
+        clean_role = role.lower().strip()
+        try:
+            role_enum = UserRole(clean_role)
+            query = query.filter(SubmittedReport.generated_by_role == role_enum)
+        except Exception:
+            pass
+
+    if period_type:
+        clean_period = period_type.lower().strip()
+        try:
+            period_enum = PeriodType(clean_period)
+            query = query.filter(SubmittedReport.period_type == period_enum)
+        except Exception:
+            pass
+
+    if entity_name:
+        clean_entity = f"%{entity_name.strip()}%"
+        query = query.filter(SubmittedReport.generated_by_name.ilike(clean_entity))
+
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(SubmittedReport.generated_by_name.ilike(search_term))
+
+    reports = query.order_by(SubmittedReport.generated_at.desc()).all()
+    return reports
+
 

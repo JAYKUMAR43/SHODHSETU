@@ -31,9 +31,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-white rounded-xl border border-red-200 text-center space-y-4">
-        <h3 className="text-base font-bold text-red-600">Access Restricted</h3>
-        <p className="text-xs text-slate-600">
+      <div className="max-w-md mx-auto my-16 p-8 rounded-2xl bg-white/[0.05] backdrop-blur-xl border border-red-500/30 text-center space-y-4">
+        <h3 className="text-base font-bold text-red-400">Access Restricted</h3>
+        <p className="text-xs text-slate-300">
           This portal requires role: <strong>{allowedRoles.join(' or ')}</strong>. You are logged in as <strong>{user.role}</strong>.
         </p>
       </div>
@@ -47,15 +47,16 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen flex flex-col bg-slate-50">
+        <div className="min-h-screen flex flex-col bg-[#0B1728] text-slate-100 ambient-mesh relative selection:bg-teal selection:text-navy">
           <Navbar />
-          <main className="flex-1">
+          <main className="flex-1 relative z-10">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/citizen" element={<CitizenHub />} />
               <Route path="/submit" element={<SubmitChallenge />} />
               <Route path="/track" element={<TrackChallenge />} />
+              <Route path="/track/:id" element={<TrackChallenge />} />
               <Route path="/registry" element={<PublicRegistry />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/login/:role" element={<LoginPage />} />

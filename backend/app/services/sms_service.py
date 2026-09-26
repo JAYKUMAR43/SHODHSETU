@@ -1,9 +1,9 @@
-﻿import logging
+import logging
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from backend.app.core.config import settings
 
-logger = logging.getLogger("shodhsetu.sms")
+logger = logging.getLogger("bharatpanchyt.sms")
 logging.basicConfig(level=logging.INFO)
 
 # In-memory audit log for dispatched SMS messages (available for testing and inspection)

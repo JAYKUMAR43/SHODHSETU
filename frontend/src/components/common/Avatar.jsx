@@ -32,9 +32,9 @@ export const Avatar = ({
       'bg-navy text-white',
       'bg-steel text-white',
       'bg-teal/20 text-teal-dark',
-      'bg-emerald-100 text-emerald-800',
-      'bg-purple-100 text-purple-800',
-      'bg-amber-100 text-amber-800'
+      'bg-emerald-500/20 text-emerald-300',
+      'bg-purple-100 text-purple-400',
+      'bg-amber-500/20 text-amber-300'
     ];
     if (!str) return colors[0];
     let hash = 0;
@@ -50,14 +50,14 @@ export const Avatar = ({
       <img
         src={src}
         alt={name || 'Avatar'}
-        className={`rounded-full object-cover border border-slate-200 shrink-0 ${sizeClasses[size] || sizeClasses.md} ${className}`}
+        className={`rounded-full object-cover border border-white/10 shrink-0 ${sizeClasses[size] || sizeClasses.md} ${className}`}
       />
     );
   }
 
   return (
     <div
-      className={`rounded-full flex items-center justify-center font-heading font-bold border border-slate-200 shrink-0 ${getBgColor(name)} ${sizeClasses[size] || sizeClasses.md} ${className}`}
+      className={`rounded-full flex items-center justify-center font-heading font-bold border border-white/10 shrink-0 ${getBgColor(name)} ${sizeClasses[size] || sizeClasses.md} ${className}`}
       title={role ? `${name} (${role})` : name}
     >
       {getInitials(name)}

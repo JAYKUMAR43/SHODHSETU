@@ -1,7 +1,7 @@
 services:
-  # ShodhSetu FastAPI Backend Service on Render
+  # Bharat Panchyt FastAPI Backend Service on Render
   - type: web
-    name: shodhsetu-backend
+    name: bharatpanchyt-backend
     env: python
     region: singapore
     plan: free
@@ -13,7 +13,11 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        value: sqlite:///./shodhsetu.db
+        value: sqlite:///./bharatpanchyt.db
+      - key: BLOB_READ_WRITE_TOKEN
+        sync: false
+      - key: BACKEND_URL
+        sync: false
       - key: GEMINI_API_KEY
         sync: false
       - key: SMS_API_KEY

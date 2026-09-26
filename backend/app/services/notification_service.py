@@ -12,7 +12,7 @@ def create_notification(
     db: Session
 ) -> Optional[Notification]:
     """
-    Centralized helper for recording notifications across ShodhSetu workflows.
+    Centralized helper for recording notifications across Bharat Panchyt workflows.
     - If recipient is a User or int: assigns recipient_user_id
     - If recipient is a contact string (email/phone): assigns recipient_contact
     """

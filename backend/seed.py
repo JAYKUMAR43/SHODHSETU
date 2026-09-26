@@ -26,8 +26,10 @@ from backend.app.models.models import (
     ChallengeStatus, ChallengeUniversityMatch, MatchStatus, ProjectTeam,
     Proposal, ProposalStatus, IndustryEngagement, EngagementType,
     IPAgreement, IPTemplate, ProjectMilestone, MilestoneStatus, IndustryReviewStatus,
-    OutcomeRecord, OutcomeType, VerificationStatus, Notification
+    OutcomeRecord, OutcomeType, VerificationStatus, Notification,
+    SubmittedReport, PeriodType
 )
+from backend.app.services.pdf_service import generate_activity_report_pdf
 
 def seed_database():
     print("Initializing clean database schema...")
@@ -409,7 +411,7 @@ def seed_database():
         due_date=now - timedelta(days=10),
         status=MilestoneStatus.COMPLETED,
         completed_at=now - timedelta(days=9),
-        evidence_url="https://shodhsetu.jh.gov.in/evidence/ratu_batch_test.pdf",
+        evidence_url="/uploads/evidence/ratu_batch_test.pdf",
         industry_review_status=IndustryReviewStatus.APPROVED,
         industry_feedback="Fluoride uptake kinetics rigorously verified in line with BIS 10500 potable water standards.",
         reviewed_by_id=user_csr_tata.id,
@@ -422,7 +424,7 @@ def seed_database():
         due_date=now - timedelta(days=3),
         status=MilestoneStatus.COMPLETED,
         completed_at=now - timedelta(days=3),
-        evidence_url="https://shodhsetu.jh.gov.in/evidence/ratu_school_pilot_report.pdf",
+        evidence_url="/uploads/evidence/ratu_school_pilot_report.pdf",
         industry_review_status=IndustryReviewStatus.APPROVED,
         industry_feedback="Stainless steel gravity units inspected on site. Approved for public registry verification.",
         reviewed_by_id=user_csr_tata.id,
@@ -434,7 +436,7 @@ def seed_database():
         proposal_id=prop1.id,
         outcome_type=OutcomeType.PILOT_DEPLOYMENT,
         claim_description="Functional 500 L/day community filtration unit operating continuously at Ratu Govt High School, bringing treated fluoride down from 3.8 mg/L to 0.72 mg/L.",
-        supporting_document_url="https://shodhsetu.jh.gov.in/evidence/ratu_school_pilot_report.pdf",
+        supporting_document_url="/uploads/evidence/ratu_school_pilot_report.pdf",
         verification_status=VerificationStatus.VERIFIED,
         verified_by_id=user_admin.id,
         verified_at=now - timedelta(days=2),
@@ -507,7 +509,7 @@ def seed_database():
         due_date=now - timedelta(days=25),
         status=MilestoneStatus.COMPLETED,
         completed_at=now - timedelta(days=24),
-        evidence_url="https://shodhsetu.jh.gov.in/evidence/katras_ald_pilot.pdf",
+        evidence_url="/uploads/evidence/katras_ald_pilot.pdf",
         industry_review_status=IndustryReviewStatus.APPROVED,
         industry_feedback="Bed geometry and limestone purity specifications verified by CIL technical team.",
         reviewed_by_id=user_csr_coal.id,
@@ -520,7 +522,7 @@ def seed_database():
         due_date=now - timedelta(days=12),
         status=MilestoneStatus.COMPLETED,
         completed_at=now - timedelta(days=11),
-        evidence_url="https://shodhsetu.jh.gov.in/evidence/katras_amd_full_deployment.pdf",
+        evidence_url="/uploads/evidence/katras_amd_full_deployment.pdf",
         industry_review_status=IndustryReviewStatus.APPROVED,
         industry_feedback="Effluent water quality meets CPCB General Discharge Standards. Fully approved.",
         reviewed_by_id=user_csr_coal.id,
@@ -532,7 +534,7 @@ def seed_database():
         proposal_id=prop2.id,
         outcome_type=OutcomeType.FULL_DEPLOYMENT,
         claim_description="Full-scale 2-acre constructed wetland commissioned at Katras pithead, neutralizing 40,000 liters of AMD daily with safe water discharge for agricultural irrigation.",
-        supporting_document_url="https://shodhsetu.jh.gov.in/evidence/katras_amd_full_deployment.pdf",
+        supporting_document_url="/uploads/evidence/katras_amd_full_deployment.pdf",
         verification_status=VerificationStatus.VERIFIED,
         verified_by_id=user_admin.id,
         verified_at=now - timedelta(days=10),
@@ -604,7 +606,7 @@ def seed_database():
         due_date=now - timedelta(days=5),
         status=MilestoneStatus.COMPLETED,
         completed_at=now - timedelta(days=2),
-        evidence_url="https://shodhsetu.jh.gov.in/evidence/solar_concentrator_cad_photos.pdf",
+        evidence_url="/uploads/evidence/solar_concentrator_cad_photos.pdf",
         industry_review_status=IndustryReviewStatus.PENDING_REVIEW
     )
     mile3_2 = ProjectMilestone(
@@ -613,7 +615,7 @@ def seed_database():
         description="Sericin dissolution rate and unbroken filament tensile yield testing across 5 batches.",
         due_date=now - timedelta(days=1),
         status=MilestoneStatus.IN_PROGRESS,
-        evidence_url="https://shodhsetu.jh.gov.in/evidence/silk_tensile_preliminary.pdf",
+        evidence_url="/uploads/evidence/silk_tensile_preliminary.pdf",
         industry_review_status=IndustryReviewStatus.REVISION_REQUESTED,
         industry_feedback="Please provide thermal stability measurements at 65°C across 3 batch runs before pilot signoff.",
         reviewed_by_id=user_csr_tata.id,
@@ -625,7 +627,7 @@ def seed_database():
         proposal_id=prop3.id,
         outcome_type=OutcomeType.PATENT_FILED,
         claim_description="Indian Patent Application No. 20261109842 filed for 'Enzymatic Solar Softening Apparatus for Wild Silkworm Cocoons'.",
-        supporting_document_url="https://shodhsetu.jh.gov.in/evidence/patent_application_silk.pdf",
+        supporting_document_url="/uploads/evidence/patent_application_silk.pdf",
         verification_status=VerificationStatus.PENDING,
         is_public=False
     )
@@ -718,6 +720,7 @@ def seed_database():
         latitude=23.41,
         longitude=85.52,
         photo_urls=["https://images.unsplash.com/photo-1541888946425-d0fbb186f5f8"],
+        voice_note_url="/uploads/audio/sample_citizen_voice.wav",
         ai_generated_brief="Structured Problem Brief: Pipeline iron sedimentation affecting piped drinking water network in Angara block.",
         priority_score=84.0,
         original_reporter_credit="Ramesh Munda (Angara Resident)",
@@ -742,7 +745,8 @@ def seed_database():
         district_id=ranchi.id,
         latitude=23.324,
         longitude=85.390,
-        photo_urls=[],
+        photo_urls=["https://images.unsplash.com/photo-1509391365360-2e959784a276", "https://images.unsplash.com/photo-1611273426858-450d8e3c9fce"],
+        voice_note_url="/uploads/audio/sample_citizen_voice.wav",
         ai_generated_brief="Structured Problem Brief: Subarnarekha river bank erosion endangering riverine tribal farming clusters due to unmonitored aggregate extraction.",
         priority_score=82.0,
         original_reporter_credit="Subarnarekha Riparian Farmers Union",
@@ -923,6 +927,103 @@ def seed_database():
         created_at=now - timedelta(hours=1)
     )
     db.add_all([notif1, notif2, notif3])
+    db.commit()
+
+    print("Seeding initial submitted reports with full attribution across 4 panels...")
+    url_uni = generate_activity_report_pdf(
+        role="university",
+        user_name=user_uni_bit.name,
+        org_name=uni_bit.name,
+        period="weekly",
+        metrics={
+            "ai_curated_matches_received": 5,
+            "active_interdisciplinary_teams": 3,
+            "research_proposals_submitted": 2,
+            "institutional_trust_score": "92.0% Completeness"
+        }
+    )
+    rep_uni = SubmittedReport(
+        generated_by_user_id=user_uni_bit.id,
+        generated_by_name=f"{user_uni_bit.name} ({uni_bit.name})",
+        generated_by_role=UserRole.UNIVERSITY,
+        period_type=PeriodType.WEEKLY,
+        period_start=now - timedelta(days=7),
+        period_end=now,
+        file_url=url_uni,
+        generated_at=now - timedelta(days=1)
+    )
+
+    url_ind = generate_activity_report_pdf(
+        role="industry",
+        user_name=user_csr_tata.name,
+        org_name=ind_tata.name,
+        period="monthly",
+        metrics={
+            "csr_proposals_evaluated": 6,
+            "active_co_funding_engagements": 2,
+            "total_csr_capital_committed_inr": "Rs. 4,500,000.00",
+            "ip_compliance_rating": "State Approved (Schedule VII CSR)"
+        }
+    )
+    rep_ind = SubmittedReport(
+        generated_by_user_id=user_csr_tata.id,
+        generated_by_name=f"{user_csr_tata.name} ({ind_tata.name})",
+        generated_by_role=UserRole.INDUSTRY,
+        period_type=PeriodType.MONTHLY,
+        period_start=now - timedelta(days=30),
+        period_end=now,
+        file_url=url_ind,
+        generated_at=now - timedelta(days=2)
+    )
+
+    url_dvo = generate_activity_report_pdf(
+        role="validation_officer",
+        user_name=user_dvo_jsr.name,
+        org_name="District STI Nodal Office (East Singhbhum)",
+        period="weekly",
+        metrics={
+            "district_submissions_logged": 12,
+            "completed_field_validations": 9,
+            "active_in_validation_queue": 2,
+            "district_sla_adherence_rate": "96.4%"
+        }
+    )
+    rep_dvo = SubmittedReport(
+        generated_by_user_id=user_dvo_jsr.id,
+        generated_by_name=f"{user_dvo_jsr.name} (District STI Nodal Office, East Singhbhum)",
+        generated_by_role=UserRole.VALIDATION_OFFICER,
+        period_type=PeriodType.WEEKLY,
+        period_start=now - timedelta(days=7),
+        period_end=now,
+        file_url=url_dvo,
+        generated_at=now - timedelta(hours=14)
+    )
+
+    url_gov = generate_activity_report_pdf(
+        role="government",
+        user_name=user_admin.name,
+        org_name="Department of Higher and Technical Education",
+        period="monthly",
+        metrics={
+            "total_citizen_submissions": 28,
+            "district_validated_challenges": 18,
+            "participating_universities": 6,
+            "corporate_industry_partners": 5,
+            "verified_field_outcomes": 2,
+            "state_sti_audit_status": "Compliant (Grade A)"
+        }
+    )
+    rep_gov = SubmittedReport(
+        generated_by_user_id=user_admin.id,
+        generated_by_name=f"{user_admin.name} (Department of Higher & Technical Education)",
+        generated_by_role=UserRole.GOVERNMENT,
+        period_type=PeriodType.MONTHLY,
+        period_start=now - timedelta(days=30),
+        period_end=now,
+        file_url=url_gov,
+        generated_at=now - timedelta(hours=4)
+    )
+    db.add_all([rep_uni, rep_ind, rep_dvo, rep_gov])
     db.commit()
 
     print("==================================================================")

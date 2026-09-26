@@ -446,3 +446,31 @@ class SystemicPattern(Base):
         default=SystemicPatternStatus.ACTIVE
     )
 
+
+class PeriodType(str, enum.Enum):
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+
+
+class SubmittedReport(Base):
+    __tablename__ = "submitted_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    generated_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    generated_by_name = Column(String(255), nullable=False)
+    generated_by_role = Column(
+        SQLEnum(UserRole, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False
+    )
+    period_type = Column(
+        SQLEnum(PeriodType, values_callable=lambda obj: [e.value for e in obj]),
+        nullable=False
+    )
+    period_start = Column(DateTime, nullable=True)
+    period_end = Column(DateTime, nullable=True)
+    file_url = Column(String(1000), nullable=False)
+    generated_at = Column(DateTime, default=utcnow)
+
+    generated_by_user = relationship("User")
+
+

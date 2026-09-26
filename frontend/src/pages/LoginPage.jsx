@@ -102,15 +102,15 @@ const LoginPage = () => {
   if (!roleConfig) {
     return (
       <div className="max-w-md mx-auto px-4 py-12 space-y-6">
-        <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm space-y-6">
+        <div className="rounded-3xl p-8 border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.8)] bg-gradient-to-b from-[#0F223D]/90 via-[#0B192C]/95 to-[#060E1A]/95 backdrop-blur-2xl space-y-6">
           <div className="text-center space-y-2">
             <div className="w-12 h-12 rounded-xl bg-teal/10 text-teal border border-teal/20 flex items-center justify-center mx-auto">
               <LogIn className="w-6 h-6" />
             </div>
-            <h1 className="text-xl font-heading font-extrabold text-navy">
+            <h1 className="text-xl font-heading font-extrabold text-white">
               Institutional Portal Login
             </h1>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-400">
               Select your institutional stakeholder capacity to access your dedicated portal.
             </p>
           </div>
@@ -122,16 +122,16 @@ const LoginPage = () => {
                 <Link
                   key={key}
                   to={`/login?role=${key}`}
-                  className="flex items-center space-x-3.5 p-3.5 rounded-xl border border-slate-200 hover:border-teal/50 hover:bg-canvas transition-all group"
+                  className="flex items-center space-x-3.5 p-3.5 rounded-xl border border-white/10 hover:border-teal/50 hover:bg-white/[0.06] transition-all group"
                 >
                   <div className="w-10 h-10 rounded-lg bg-teal/10 text-teal flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-navy group-hover:text-teal transition-colors">
+                    <div className="text-xs font-bold text-white group-hover:text-teal transition-colors">
                       {config.title.replace(' Login', '')}
                     </div>
-                    <div className="text-[11px] text-slate-500 truncate">
+                    <div className="text-[11px] text-slate-400 truncate">
                       {config.subtitle}
                     </div>
                   </div>
@@ -141,10 +141,10 @@ const LoginPage = () => {
             })}
           </div>
 
-          <div className="pt-4 border-t border-slate-100 text-center">
+          <div className="pt-4 border-t border-white/10 text-center">
             <Link
               to="/"
-              className="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-navy transition-colors font-medium"
+              className="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white transition-colors font-medium"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
@@ -159,21 +159,21 @@ const LoginPage = () => {
 
   return (
     <div className="max-w-md mx-auto px-4 py-12 space-y-6">
-      <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm space-y-6">
+      <div className="rounded-xl p-8 border border-slate-700 shadow-lvl3 bg-[#11233D] space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-teal/10 text-teal border border-teal/20 flex items-center justify-center mx-auto">
+          <div className="w-12 h-12 rounded-xl bg-teal/15 text-teal border border-teal/30 flex items-center justify-center mx-auto shadow-sm">
             <RoleIcon className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-heading font-extrabold text-navy">
+          <h1 className="text-2xl font-heading font-bold text-white">
             {roleConfig.title}
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             {roleConfig.subtitle}
           </p>
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-light border border-red-border text-red-700 text-xs flex items-center space-x-2">
+          <div className="p-3.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -181,7 +181,7 @@ const LoginPage = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
               Enter your ID
             </label>
             <input
@@ -189,13 +189,13 @@ const LoginPage = () => {
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="Enter your ID"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal font-mono"
+              placeholder="e.g. officer@ranchi.gov.in"
+              className="w-full px-4 py-3 rounded-lg bg-[#0E1E34] border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal placeholder-slate-400 font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
               Enter your password
             </label>
             <input
@@ -204,24 +204,24 @@ const LoginPage = () => {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder="Enter your password"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
+              className="w-full px-4 py-3 rounded-lg bg-[#0E1E34] border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal placeholder-slate-400"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-navy hover:bg-navy-light text-white font-bold text-xs transition-colors shadow-sm flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="w-full py-3 rounded-lg bg-teal hover:bg-teal-hover text-navy font-extrabold text-sm transition-all shadow-sm flex items-center justify-center space-x-2 disabled:opacity-50"
           >
-            <LogIn className="w-4 h-4 text-teal" />
+            <LogIn className="w-4 h-4 text-navy" />
             <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
           </button>
         </form>
 
-        <div className="pt-4 border-t border-slate-100 text-center">
+        <div className="pt-4 border-t border-white/10 text-center">
           <Link
             to="/login"
-            className="inline-flex items-center space-x-1.5 text-xs text-slate-500 hover:text-navy transition-colors font-medium"
+            className="inline-flex items-center space-x-1.5 text-xs text-slate-400 hover:text-white transition-colors font-medium"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Choose a different role</span>

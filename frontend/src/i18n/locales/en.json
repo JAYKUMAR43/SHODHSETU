@@ -14,7 +14,7 @@
     "hero_title": "Bridging Grassroots Challenges with",
     "hero_title_accent": "University Research",
     "hero_title_end": "& Industry CSR",
-    "hero_desc": "connects citizen-reported societal issues in Jharkhand to the research capacity of higher education institutions and the execution capital of industry partners, governed by district administration.",
+    "hero_desc": "An AI-powered platform that connects people's real-world problems with the right research expertise, funding and implementation.",
     "role_citizen_title": "Citizen & Community",
     "role_citizen_sub": "Grassroots Submissions",
     "role_citizen_desc": "Report civic, water, agricultural, or livelihood problems without mandatory login. Voice notes & photos supported.",
@@ -142,7 +142,7 @@
   "registry": {
     "repository_tag": "Open Societal Impact & Patent Repository",
     "title": "Public Innovation Outcome Registry",
-    "subtitle": "Independently verified engineering prototypes, community deployments, and patents generated through ShodhSetu collaborations in Jharkhand.",
+    "subtitle": "Independently verified engineering prototypes, community deployments, and patents generated through Bharat Panchyt collaborations in Jharkhand.",
     "verification_seal": "Independent Govt-Verified Outcomes Only",
     "filter_label": "Filter Registry:",
     "all_districts": "All Districts",

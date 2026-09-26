@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Send, 
   MapPin, 
   Camera, 
+  Upload,
+  X,
+  Loader2,
+  Image as ImageIcon,
   Mic, 
   CheckCircle2, 
   AlertCircle, 
@@ -17,23 +21,37 @@ import {
   KeyRound,
   Clock,
   Calendar,
-  Database
+  Database,
+  RefreshCw
 } from 'lucide-react';
-import api from '../services/api';
+import api, { getFileUrl } from '../services/api';
+import BottomSheet from '../components/common/BottomSheet';
 
-const CATEGORIES = [
-  { id: '', label: '✨ AI Auto-Classify' },
-  { id: 'water_resources', label: 'Water Resources & Fluoride/Arsenic Mitigation' },
-  { id: 'agriculture', label: 'Agriculture, Soil & Post-Harvest Systems' },
-  { id: 'healthcare', label: 'Healthcare & Point-of-Care Diagnostics' },
-  { id: 'environment', label: 'Environment & Mine Remediation' },
-  { id: 'energy', label: 'Renewable Energy & Microgrids' },
-  { id: 'rural_livelihoods', label: 'Rural Livelihoods, Lac & Tussar Sericulture' },
-  { id: 'education', label: 'Education & Vernacular Pedagogy' },
-  { id: 'urban_development', label: 'Urban Development & Waste Management' },
-  { id: 'accessibility', label: 'Accessibility & Divyang Technologies' },
-  { id: 'public_administration', label: 'Public Administration & Civic Grievances' }
-];
+const CATEGORY_LABELS = {
+  water_resources: 'Water Resources & Fluoride/Arsenic Mitigation',
+  agriculture: 'Agriculture, Soil & Post-Harvest Systems',
+  healthcare: 'Healthcare & Point-of-Care Diagnostics',
+  environment: 'Environment & Mine Remediation',
+  energy: 'Renewable Energy & Microgrids',
+  rural_livelihoods: 'Rural Livelihoods, Lac & Tussar Sericulture',
+  education: 'Education & Vernacular Pedagogy',
+  urban_development: 'Urban Development & Waste Management',
+  accessibility: 'Accessibility & Divyang Technologies',
+  public_administration: 'Public Administration & Civic Grievances'
+};
+
+const AUTO_CATEGORY_KEYWORDS = {
+  agriculture: ["crop", "soil", "pest", "irrigation", "farming", "paddy", "fertilizer", "kisan", "yield", "drought", "seeds", "kheti", "fasal", "mitti", "keeda", "sinchai", "anaj", "khet", "urvarak", "dhan", "gehu", "paudha", "gobargas", "khet-bari", "chas", "chasi", "ropa", "behan", "bichha", "kisaan", "baadi", "tora", "baba", "kado"],
+  water_resources: ["water", "arsenic", "fluoride", "borewell", "pond", "dam", "drinking", "contamination", "pipeline", "drainage", "handpump", "paani", "jal", "peypani", "peene ka pani", "nal", "kua", "kuan", "talab", "chapakal", "boring", "ganda pani", "jal sankat", "daah", "dahar", "chuan", "doba", "bandh", "aahar", "pokhari", "jharna", "khoro", "jor", "gadhia", "dhaas"],
+  healthcare: ["hospital", "clinic", "disease", "malnutrition", "vaccine", "doctor", "health", "maternal", "sanitation", "ambulance", "fever", "aspataal", "swasthya", "bimari", "dawa", "davai", "ilaj", "rog", "poshan", "kuposhan", "tika", "chikitsa", "sehat", "rua", "haspatal", "daktar", "poshan", "sahiyya", "anganwadi", "dawai", "bimar", "roga"],
+  education: ["school", "teacher", "student", "classroom", "books", "literacy", "dropout", "stem", "college", "vocational", "vidyalaya", "shiksha", "padhai", "kitab", "shikshak", "chhatra", "pathshala", "kaksha", "adhyayan", "ischool", "guruji", "master babu", "basta"],
+  environment: ["pollution", "forest", "mining", "dust", "effluent", "waste", "deforestation", "air quality", "biodiversity", "dumping", "pradushan", "jungle", "van", "dhuan", "khadan", "koyla", "ped", "hawa", "paryavaran", "kachra dumping", "bir", "dhur-dhuan", "chhai", "khadan", "khorha", "jhaad", "dhur"],
+  energy: ["electricity", "power", "solar", "grid", "transformer", "biomass", "load shedding", "outage", "renewable", "bijli", "batti", "urja", "taar", "andhera", "current", "solar panel", "dhoop", "roshni", "chup-chup", "battie", "line kata", "voltage"],
+  urban_development: ["road", "traffic", "slum", "sewage", "street light", "pothole", "solid waste", "urban flooding", "encroachment", "sadak", "gaddha", "kachra", "naali", "basti", "jaam", "gali", "pul", "puliya", "footpath", "dahar", "rasta", "kado", "kichad", "dhalo"],
+  accessibility: ["disabled", "wheelchair", "ramp", "braille", "divyang", "elderly", "sign language", "mobility", "special needs", "viklang", "bujurg", "vridh", "chalne me pareshani", "sahayata", "divyangjan", "batha", "langda", "dekhai na dena", "sunai na dena"],
+  public_administration: ["pension", "ration", "caste certificate", "land record", "grievance", "corruption", "panchayat", "bribe", "pds", "shikayat", "bhrashtachar", "praman patra", "khatian", "dakhil kharij", "mukhiya", "ghoos", "adhikar", "kotawala", "panch", "pradhan", "jameen", "dastavej", "afsar"],
+  rural_livelihoods: ["artisan", "weaving", "tussar", "silk", "lac", "minor forest produce", "self help group", "shg", "poultry", "goat", "tribal market", "rozgar", "kamai", "bunkar", "mahila mandal", "murgi palan", "bakri", "haat", "bazaar", "hastshilp", "lah", "jute", "mahua", "kendupatta", "tassar", "sabai", "dholka", "sangh", "kam-dhandha", "sohrai", "kohbar"]
+};
 
 const SubmitChallenge = () => {
   const navigate = useNavigate();
@@ -78,8 +96,153 @@ const SubmitChallenge = () => {
     return () => clearTimeout(timer);
   }, [otpCooldown]);
 
+  // Auto-detect domain sector from description & title (Zero manual dropdown selection)
+  const detectCategory = (desc = '', title = '') => {
+    const combined = `${title} ${desc}`.toLowerCase();
+    if (!combined.trim() || combined.trim().length < 4) return '';
+
+    let bestCat = '';
+    let maxScore = 0;
+
+    for (const [cat, keywords] of Object.entries(AUTO_CATEGORY_KEYWORDS)) {
+      let score = 0;
+      for (const kw of keywords) {
+        if (combined.includes(kw)) {
+          score += (kw.length > 5 ? 2 : 1);
+        }
+      }
+      if (score > maxScore) {
+        maxScore = score;
+        bestCat = cat;
+      }
+    }
+
+    return bestCat;
+  };
+
+  // Keep category in sync with auto-detection automatically
+  useEffect(() => {
+    const detected = detectCategory(formData.description, formData.title);
+    if (detected && detected !== formData.category) {
+      setFormData(prev => ({ ...prev, category: detected }));
+    }
+  }, [formData.description, formData.title]);
+
   const [photoInput, setPhotoInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  // Live Camera Web API Modal State
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [cameraStream, setCameraStream] = useState(null);
+  const [capturedPreview, setCapturedPreview] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+
+  // Bind stream to video element when stream is ready
+  useEffect(() => {
+    if (isCameraModalOpen && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(e => console.warn("Video play interrupted", e));
+    }
+  }, [isCameraModalOpen, cameraStream]);
+
+  const handleOpenCamera = async () => {
+    setCameraError(null);
+    setCapturedPreview(null);
+    setIsCameraModalOpen(true);
+
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Webcam API is not supported in this browser. Please use 'Upload Image'.");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      }
+    } catch (err) {
+      console.warn("Direct webcam stream failed:", err);
+      setCameraError(err.message || "Camera access denied or unavailable. You can click 'Upload Image' to choose a photo file.");
+    }
+  };
+
+  const handleCaptureSnapshot = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    setCapturedPreview(dataUrl);
+  };
+
+  const handleRetakeSnapshot = () => {
+    setCapturedPreview(null);
+    if (videoRef.current && cameraStream) {
+      videoRef.current.srcObject = cameraStream;
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const handleConfirmCapturedPhoto = async () => {
+    if (!capturedPreview) return;
+    setUploadingPhoto(true);
+
+    try {
+      const resBlob = await fetch(capturedPreview);
+      const blob = await resBlob.blob();
+      const file = new File([blob], `field_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
+
+      const uploadData = new FormData();
+      uploadData.append('file', file);
+      uploadData.append('folder', 'field_evidence');
+
+      const res = await api.post('/storage/upload', uploadData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (res.data?.url) {
+        setFormData(prev => ({
+          ...prev,
+          photo_urls: [...prev.photo_urls, res.data.url]
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          photo_urls: [...prev.photo_urls, capturedPreview]
+        }));
+      }
+    } catch (err) {
+      console.warn("Camera upload fallback to base64:", err);
+      setFormData(prev => ({
+        ...prev,
+        photo_urls: [...prev.photo_urls, capturedPreview]
+      }));
+    } finally {
+      setUploadingPhoto(false);
+      handleCloseCamera();
+    }
+  };
+
+  const handleCloseCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setCapturedPreview(null);
+    setCameraError(null);
+    setIsCameraModalOpen(false);
+  };
 
   useEffect(() => {
     api.get('/districts')
@@ -111,6 +274,47 @@ const SubmitChallenge = () => {
     }
   }, []);
 
+  const handlePhotoFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingPhoto(true);
+
+    for (const file of files) {
+      try {
+        const uploadData = new FormData();
+        uploadData.append('file', file);
+        uploadData.append('folder', 'field_evidence');
+
+        const res = await api.post('/storage/upload', uploadData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        if (res.data?.url) {
+          setFormData(prev => ({
+            ...prev,
+            photo_urls: [...prev.photo_urls, res.data.url]
+          }));
+        }
+      } catch (err) {
+        console.warn('Backend upload returned error, using local base64 fallback:', err);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            setFormData(prev => ({
+              ...prev,
+              photo_urls: [...prev.photo_urls, event.target.result]
+            }));
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    setUploadingPhoto(false);
+    if (e.target) e.target.value = '';
+  };
+
   const handleAddPhoto = () => {
     if (photoInput.trim()) {
       setFormData(prev => ({
@@ -135,7 +339,7 @@ const SubmitChallenge = () => {
         setIsRecording(false);
         setFormData(prev => ({
           ...prev,
-          voice_note_url: 'https://shodhsetu.jh.gov.in/audio/sample_citizen_voice.mp3'
+          voice_note_url: '/uploads/audio/sample_citizen_voice.wav'
         }));
       }, 2500);
     }
@@ -253,12 +457,12 @@ const SubmitChallenge = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-8 animate-fade-in-up">
       {/* Back Navigation */}
       <div className="mb-6 flex items-center space-x-3">
         <Link
           to="/citizen"
-          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-navy transition-colors bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm"
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors bg-white/[0.06] px-3 py-1.5 rounded-lg border border-white/10 shadow-float"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{t('nav.back_to_citizen', 'Back to Citizen Hub')}</span>
@@ -266,7 +470,7 @@ const SubmitChallenge = () => {
         <span className="text-slate-300">•</span>
         <Link
           to="/"
-          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-navy transition-colors"
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-400 hover:text-teal transition-colors"
         >
           <span>{t('nav.stakeholder_roles', 'Stakeholder Roles')}</span>
         </Link>
@@ -274,32 +478,32 @@ const SubmitChallenge = () => {
 
       {/* Confirmation Screen (Screen 4) */}
       {successData ? (
-        <div className="bg-white rounded-2xl p-8 border border-green-border shadow-xl space-y-6">
-          <div className="w-16 h-16 rounded-full bg-green-light text-green flex items-center justify-center mx-auto">
+        <div className="panel-glass p-8 border-green/30 space-y-6">
+          <div className="w-16 h-16 rounded-full bg-green/15 text-green flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-10 h-10" />
           </div>
 
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-heading font-extrabold text-navy">
+            <h2 className="text-2xl font-heading font-extrabold text-white">
               Challenge Submitted Successfully
             </h2>
-            <p className="text-slate-600 text-sm max-w-md mx-auto">
-              Your challenge has entered the ShodhSetu pipeline. District Science & Technology Officers have been notified.
+            <p className="text-slate-300 text-sm max-w-md mx-auto">
+              Your challenge has entered the Bharat Panchyt pipeline. District Science & Technology Officers have been notified.
             </p>
           </div>
 
           {/* Real Tracking ID Box (No blockchain theater) */}
-          <div className="bg-canvas border-2 border-dashed border-teal/40 rounded-xl p-6 text-center space-y-3">
+          <div className="bg-white/[0.04] border-2 border-dashed border-teal/40 rounded-xl p-6 text-center space-y-3">
             <span className="text-xs uppercase tracking-wider text-slate-500 font-bold">
               Official Challenge Tracking ID
             </span>
             <div className="flex items-center justify-center space-x-3">
-              <span className="text-3xl font-heading font-black text-navy tracking-widest font-mono">
+              <span className="text-3xl font-heading font-black text-teal tracking-widest font-mono">
                 {successData.tracking_id}
               </span>
               <button
                 onClick={copyTrackingId}
-                className="p-2 rounded-lg bg-white border border-slate-200 hover:bg-teal hover:text-navy text-slate-600 transition-colors shadow-sm"
+                className="p-2 rounded-lg bg-white/[0.06] border border-white/10 hover:bg-teal hover:text-navy text-slate-300 transition-colors shadow-float"
                 title="Copy Tracking ID"
               >
                 {copied ? <CheckCircle2 className="w-4 h-4 text-green" /> : <Copy className="w-4 h-4" />}
@@ -311,9 +515,9 @@ const SubmitChallenge = () => {
           </div>
 
           {/* Database Record Details (Real data with timestamp - Fix 0B) */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2 text-slate-700">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <div className="flex items-center space-x-1.5 font-bold text-navy">
+          <div className="bg-white/[0.04] border border-white/10 rounded-xl p-4 text-xs space-y-2 text-slate-200">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <div className="flex items-center space-x-1.5 font-bold text-white">
                 <Database className="w-4 h-4 text-teal" />
                 <span>Verified Platform Record</span>
               </div>
@@ -325,7 +529,7 @@ const SubmitChallenge = () => {
               <div><strong>Domain Sector:</strong> <span className="capitalize">{successData.category?.replace(/_/g, ' ')}</span></div>
               <div><strong>Initial Priority Score:</strong> {successData.priority_score || 75} / 100</div>
               <div><strong>District:</strong> {districts.find(d => d.id === parseInt(formData.district_id))?.name || 'Jharkhand'}</div>
-              <div><strong>Status:</strong> <span className="font-mono font-bold text-navy uppercase">{successData.status}</span></div>
+              <div><strong>Status:</strong> <span className="font-mono font-bold text-slate-300 uppercase">{successData.status}</span></div>
             </div>
           </div>
 
@@ -333,7 +537,7 @@ const SubmitChallenge = () => {
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
               onClick={() => navigate(`/track?id=${successData.tracking_id}`)}
-              className="flex-1 py-3 rounded-xl bg-teal text-navy font-bold hover:bg-teal-hover transition-all flex items-center justify-center space-x-2 text-sm shadow-sm"
+              className="flex-1 py-3 rounded-xl bg-teal text-navy font-bold hover:bg-teal-hover transition-all flex items-center justify-center space-x-2 text-sm shadow-float"
             >
               <span>Track Resolution Progress</span>
               <ArrowRight className="w-4 h-4" />
@@ -359,7 +563,7 @@ const SubmitChallenge = () => {
                 setOtpState('idle');
                 setOtpCode('');
               }}
-              className="py-3 px-6 rounded-xl bg-slate-100 text-slate-700 font-semibold hover:bg-slate-200 text-sm border border-slate-200"
+              className="py-3 px-6 rounded-xl bg-white/[0.06] text-slate-200 font-semibold hover:bg-white/[0.12] text-sm border border-white/10"
             >
               Submit Another Challenge
             </button>
@@ -367,22 +571,22 @@ const SubmitChallenge = () => {
         </div>
       ) : (
         /* Submission Form (Screen 3) */
-        <div className="bg-white rounded-2xl p-6 sm:p-10 border border-slate-200 shadow-sm space-y-8">
-          <div className="border-b border-slate-100 pb-4">
+        <div className="panel-glass p-6 sm:p-10 space-y-8">
+          <div className="border-b border-white/10 pb-4">
             <div className="flex items-center space-x-2 text-xs font-semibold text-teal mb-1">
               <Building className="w-3.5 h-3.5" />
               <span>Public Civic Submission Portal</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-navy">
+            <h1 className="text-2xl sm:text-3xl font-heading font-extrabold text-white">
               Submit a Grassroots Challenge
             </h1>
-            <p className="text-slate-600 text-xs sm:text-sm mt-1">
+            <p className="text-slate-300 text-xs sm:text-sm mt-1">
               Provide specific issue details. Our AI will automatically synthesize a problem brief and route it to your District STI Officer.
             </p>
           </div>
 
           {error && (
-            <div className="p-4 rounded-xl bg-red-light border border-red-border text-red-700 text-xs flex items-center space-x-2">
+            <div className="p-4 rounded-xl bg-red/15 border border-red/40 text-red text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -391,7 +595,7 @@ const SubmitChallenge = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Submitter Capacity */}
             <div>
-              <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                 Submitter Capacity
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -405,10 +609,10 @@ const SubmitChallenge = () => {
                     key={type.id}
                     type="button"
                     onClick={() => setFormData({ ...formData, submitter_type: type.id })}
-                    className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all text-center ${
+                    className={`py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all text-center ${
                       formData.submitter_type === type.id
-                        ? 'bg-navy text-white border-navy font-semibold shadow-sm'
-                        : 'bg-canvas text-slate-600 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-teal text-navy border-teal font-bold shadow-sm'
+                        : 'bg-[#0E1E36] text-slate-300 border-slate-700 hover:bg-[#152B4D] hover:text-white'
                     }`}
                   >
                     {type.label}
@@ -416,7 +620,7 @@ const SubmitChallenge = () => {
                 ))}
               </div>
               {formData.submitter_type !== 'citizen' && (
-                <p className="text-[11px] text-teal-dark mt-1 font-medium">
+                <p className="text-xs text-teal mt-1.5 font-medium">
                   ✓ Institutional submissions from PRIs/ULBs receive expedited automatic validation.
                 </p>
               )}
@@ -424,8 +628,8 @@ const SubmitChallenge = () => {
 
             {/* Title */}
             <div>
-              <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
-                Challenge Title *
+              <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
+                Challenge Title <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
@@ -433,14 +637,14 @@ const SubmitChallenge = () => {
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g. High fluoride concentration in village tube-well causing dental fluorosis"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-[#0F223D] border border-slate-700 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
-                Problem Description & Field Impact *
+              <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
+                Problem Description & Field Impact <span className="text-red-400">*</span>
               </label>
               <textarea
                 required
@@ -448,49 +652,69 @@ const SubmitChallenge = () => {
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe what is broken, who is affected, how long the issue has persisted, and any local remedies attempted..."
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-transparent"
+                className="w-full px-4 py-3 rounded-lg bg-[#0F223D] border border-slate-700 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal transition-all"
               />
-              <span className="text-[11px] text-slate-400">Minimum 15 characters. Be as specific as possible.</span>
+              <span className="text-xs text-slate-400 mt-1 block">Minimum 15 characters. Be as specific as possible.</span>
             </div>
 
-            {/* Category & District Grid */}
+            {/* Auto-Detected Domain Sector & District Grid (Zero Manual List Selection) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
-                  Domain Sector (Optional)
-                </label>
-                <select
-                  value={formData.category}
-                  onChange={e => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
-                >
-                  {CATEGORIES.map(c => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
-                  ))}
-                </select>
-                <span className="text-[10px] text-slate-400">Leave on AI Auto-Classify for automatic domain assignment.</span>
+              {/* AI Auto-Detected Domain Card */}
+              <div className="bg-[#122644] p-4 rounded-xl border border-teal-500/30 space-y-2 flex flex-col justify-between shadow-sm">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center space-x-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-teal" />
+                    <span>Domain Sector (Auto-Classified)</span>
+                  </label>
+                  <span className="text-[11px] bg-teal/20 text-teal font-mono font-bold px-2 py-0.5 rounded-full border border-teal/30">
+                    Auto-Filled by AI
+                  </span>
+                </div>
+
+                {formData.category ? (
+                  <div className="bg-[#163056] p-3 rounded-lg border border-teal-400/40 flex items-center space-x-2.5">
+                    <div className="w-6 h-6 rounded-md bg-teal text-navy font-black text-xs flex items-center justify-center shrink-0">
+                      ✓
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-white truncate">
+                        {CATEGORY_LABELS[formData.category] || formData.category.replace(/_/g, ' ')}
+                      </div>
+                      <span className="text-[11px] text-teal-300 block">
+                        Auto-detected from description keywords & context
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-[#0E1E36] p-3 rounded-lg border border-dashed border-slate-700 text-xs text-slate-400 flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-teal shrink-0 animate-pulse" />
+                    <span>Type problem details — sector is auto-detected automatically without manual list selection.</span>
+                  </div>
+                )}
               </div>
 
+              {/* District Selector */}
               <div>
-                <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
-                  District (Jharkhand) *
+                <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
+                  District (Jharkhand) <span className="text-red-400">*</span>
                 </label>
                 <select
                   required
                   value={formData.district_id}
                   onChange={e => setFormData({ ...formData, district_id: e.target.value })}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
+                  className="w-full px-3.5 py-3 rounded-lg bg-[#0F223D] border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal focus:border-teal"
                 >
                   {districts.map(d => (
                     <option key={d.id} value={d.id}>{d.name} ({d.state})</option>
                   ))}
                 </select>
+                <span className="text-xs text-slate-400 mt-1 block">Your report is routed to this district's nodal officer.</span>
               </div>
             </div>
 
             {/* Geolocation Coordinate Detection (Auto-fires on mount) */}
             <div>
-              <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
                 Geotag Location (Automatically Resolved)
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -499,27 +723,27 @@ const SubmitChallenge = () => {
                   placeholder="Latitude (e.g. 23.3441)"
                   value={formData.latitude}
                   onChange={e => setFormData({ ...formData, latitude: e.target.value })}
-                  className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal font-mono"
+                  className="px-3.5 py-2.5 rounded-lg bg-[#0F223D] border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-teal font-mono"
                 />
                 <input
                   type="text"
                   placeholder="Longitude (e.g. 85.3096)"
                   value={formData.longitude}
                   onChange={e => setFormData({ ...formData, longitude: e.target.value })}
-                  className="px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal font-mono"
+                  className="px-3.5 py-2.5 rounded-lg bg-[#0F223D] border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:ring-2 focus:ring-teal font-mono"
                 />
               </div>
-              <span className="text-[10px] text-slate-400 mt-1 block">
+              <span className="text-xs text-slate-400 mt-1 block">
                 Browser GPS coordinates detected automatically on page load when permitted, or enter manually.
               </span>
             </div>
 
             {/* Multimodal: Voice Note + Photo Attachments */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-canvas border border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl stat-glass">
               {/* Voice Note */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-navy uppercase tracking-wider">Voice Note</span>
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Voice Note</span>
                   <span className="text-[10px] bg-teal/20 text-teal px-1.5 py-0.5 rounded font-mono">Multilingual AI</span>
                 </div>
                 <button
@@ -529,8 +753,8 @@ const SubmitChallenge = () => {
                     isRecording 
                       ? 'bg-red text-white border-red animate-pulse' 
                       : formData.voice_note_url 
-                        ? 'bg-green-light text-green border-green-border' 
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                        ? 'bg-green/15 text-green border-green-border' 
+                        : 'bg-white/[0.06] text-slate-200 border-white/15 hover:bg-white/[0.04]'
                   }`}
                 >
                   <Mic className="w-4 h-4" />
@@ -543,49 +767,142 @@ const SubmitChallenge = () => {
                 </p>
               </div>
 
-              {/* Photo Upload */}
-              <div className="space-y-2">
-                <span className="text-xs font-bold text-navy uppercase tracking-wider block">Field Photo URL</span>
-                <div className="flex space-x-2">
-                  <input
-                    type="url"
-                    value={photoInput}
-                    onChange={e => setPhotoInput(e.target.value)}
-                    placeholder="https://.../photo.jpg"
-                    className="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
-                  />
+              {/* Photo Upload & Camera Capture */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider block">
+                    Field Evidence Photos
+                  </span>
+                  {formData.photo_urls.length > 0 && (
+                    <span className="text-[11px] font-bold text-teal bg-teal/15 px-2 py-0.5 rounded-full border border-teal/30">
+                      {formData.photo_urls.length} attached
+                    </span>
+                  )}
+                </div>
+
+                {/* Hidden File Inputs */}
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
+                />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handlePhotoFileChange}
+                />
+
+                {/* Camera Click & Upload Buttons */}
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
-                    onClick={handleAddPhoto}
-                    className="px-3.5 py-2 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-hover transition-colors"
+                    onClick={handleOpenCamera}
+                    disabled={uploadingPhoto}
+                    className="py-2.5 px-3 rounded-xl bg-teal/15 hover:bg-teal/25 border border-teal/40 text-teal text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-lvl1 disabled:opacity-50"
                   >
-                    Add
+                    {uploadingPhoto ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-teal" />
+                    ) : (
+                      <Camera className="w-4 h-4 text-teal" />
+                    )}
+                    <span>{uploadingPhoto ? 'Processing...' : 'Click Photo / Camera'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="py-2.5 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-white text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-lvl1 disabled:opacity-50"
+                  >
+                    <Upload className="w-4 h-4 text-teal" />
+                    <span>Upload Image</span>
                   </button>
                 </div>
+
+                {/* Photo Previews Grid */}
                 {formData.photo_urls.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-1">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 pt-1">
                     {formData.photo_urls.map((p, idx) => (
-                      <span key={idx} className="inline-flex items-center space-x-1 text-[10px] bg-white border border-slate-300 px-2 py-1 rounded">
-                        <span className="max-w-[120px] truncate">{p}</span>
-                        <button type="button" onClick={() => handleRemovePhoto(idx)} className="text-red font-bold ml-1">×</button>
-                      </span>
+                      <div 
+                        key={idx} 
+                        className="relative group aspect-square rounded-xl overflow-hidden border border-white/20 bg-black/40 shadow-lvl1"
+                      >
+                        <img
+                          src={getFileUrl(p)}
+                          alt={`Field photo ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePhoto(idx)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red/90 text-white flex items-center justify-center hover:bg-red shadow-md transition-colors"
+                          title="Remove photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
+
+                {/* Optional URL Paste Expandable */}
+                <div className="pt-1">
+                  {!showUrlInput ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowUrlInput(true)}
+                      className="text-[11px] text-slate-400 hover:text-teal transition-colors underline decoration-dotted"
+                    >
+                      + Or paste web image URL
+                    </button>
+                  ) : (
+                    <div className="space-y-1.5 animate-fade-in-up">
+                      <div className="flex space-x-2">
+                        <input
+                          type="url"
+                          value={photoInput}
+                          onChange={e => setPhotoInput(e.target.value)}
+                          placeholder="https://.../photo.jpg"
+                          className="flex-1 px-3 py-1.5 rounded-xl bg-[#0F223D] border border-white/15 text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddPhoto}
+                          className="px-3 py-1.5 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-hover transition-colors"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowUrlInput(false)}
+                          className="px-2 py-1.5 text-xs text-slate-400 hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Submitter Contact & Mandatory OTP Section */}
-            <div className="p-4 sm:p-5 rounded-xl bg-canvas border border-slate-200 space-y-4">
+            <div className="p-4 sm:p-5 rounded-xl stat-glass space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-navy uppercase tracking-wider flex items-center space-x-1.5">
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1.5">
                   <Phone className="w-4 h-4 text-teal" />
                   <span>
                     {formData.submitter_type === 'citizen' ? 'Mobile Phone Number (Mandatory & OTP Verified) *' : 'Institutional Contact Phone'}
                   </span>
                 </span>
                 {formData.submitter_type === 'citizen' && otpState === 'verified' && (
-                  <span className="inline-flex items-center space-x-1 text-xs font-bold text-green-700 bg-green-light px-2.5 py-1 rounded-full border border-green-border">
+                  <span className="inline-flex items-center space-x-1 text-xs font-bold text-green bg-green/15 px-2.5 py-1 rounded-full border border-green-border">
                     <CheckCircle2 className="w-3.5 h-3.5 text-green" />
                     <span>Phone Verified</span>
                   </span>
@@ -603,10 +920,10 @@ const SubmitChallenge = () => {
                       onChange={e => handlePhoneChange(e.target.value)}
                       placeholder="+91 98765 43210 (10-digit mobile number)"
                       disabled={otpState === 'verified'}
-                      className={`w-full px-3 py-2.5 rounded-xl border text-xs focus:outline-none focus:ring-2 focus:ring-teal ${
+                      className={`w-full px-3.5 py-2.5 rounded-lg border text-sm focus:outline-none focus:ring-2 focus:ring-teal ${
                         otpState === 'verified'
-                          ? 'bg-green-light/30 border-green-border text-slate-800 font-medium'
-                          : 'border-slate-300'
+                          ? 'bg-green/20 border-green text-white font-medium'
+                          : 'bg-[#0F223D] border-slate-700 text-white placeholder-slate-400'
                       }`}
                     />
                     {otpState === 'verified' && (
@@ -618,7 +935,7 @@ const SubmitChallenge = () => {
                           setOtpCode('');
                           setOtpSuccessMsg('');
                         }}
-                        className="absolute right-3 top-2.5 text-[11px] text-slate-400 hover:text-navy underline"
+                        className="absolute right-3 top-2.5 text-xs text-teal hover:underline font-semibold"
                       >
                         Change
                       </button>
@@ -630,7 +947,7 @@ const SubmitChallenge = () => {
                       type="button"
                       disabled={otpState === 'sending' || otpCooldown > 0 || !formData.submitter_contact || formData.submitter_contact.length < 10}
                       onClick={handleSendOtp}
-                      className="px-4 py-2.5 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-hover transition-all disabled:opacity-50 whitespace-nowrap shadow-sm"
+                      className="px-5 py-2.5 rounded-lg bg-teal text-navy font-bold text-xs hover:bg-teal-hover transition-all disabled:opacity-50 whitespace-nowrap shadow-sm"
                     >
                       {otpState === 'sending' 
                         ? 'Sending...' 
@@ -642,22 +959,22 @@ const SubmitChallenge = () => {
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-slate-400">
                   Kept strictly confidential. Used for critical SMS milestone updates.
                 </p>
               </div>
 
               {/* OTP Input box */}
               {formData.submitter_type === 'citizen' && (otpState === 'sent' || otpState === 'verifying') && (
-                <div className="p-3.5 rounded-xl bg-white border border-teal/40 space-y-2.5 shadow-sm">
+                <div className="p-4 rounded-xl bg-[#122644] border border-teal-500/40 space-y-3 shadow-sm">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-navy flex items-center space-x-1.5">
+                    <label className="text-xs font-bold text-white flex items-center space-x-1.5">
                       <KeyRound className="w-3.5 h-3.5 text-teal" />
                       <span>Enter 6-Digit OTP sent to {formData.submitter_contact}</span>
                     </label>
                     {otpCooldown > 0 && (
-                      <span className="text-[11px] text-slate-400 flex items-center space-x-1 font-mono">
-                        <Clock className="w-3 h-3" />
+                      <span className="text-xs text-slate-400 flex items-center space-x-1 font-mono">
+                        <Clock className="w-3.5 h-3.5 text-teal" />
                         <span>Expires in 5 mins (Resend in {otpCooldown}s)</span>
                       </span>
                     )}
@@ -670,20 +987,20 @@ const SubmitChallenge = () => {
                       value={otpCode}
                       onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
                       placeholder="e.g. 482910"
-                      className="w-40 px-3 py-2 rounded-xl border border-slate-300 text-sm font-mono tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-teal"
+                      className="w-44 px-3.5 py-2.5 rounded-lg bg-[#0F223D] border border-slate-700 text-white text-sm font-mono tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-teal"
                     />
                     <button
                       type="button"
                       disabled={otpState === 'verifying' || otpCode.trim().length !== 6}
                       onClick={handleVerifyOtp}
-                      className="px-5 py-2 rounded-xl bg-navy hover:bg-navy-light text-white font-bold text-xs transition-colors disabled:opacity-50"
+                      className="px-5 py-2.5 rounded-lg bg-teal hover:bg-teal-hover text-navy font-bold text-xs transition-colors disabled:opacity-50"
                     >
                       {otpState === 'verifying' ? 'Verifying...' : 'Verify OTP'}
                     </button>
                   </div>
 
                   {debugOtp && (
-                    <div className="text-[11px] bg-amber-light text-amber-800 p-1.5 rounded-lg border border-amber-border">
+                    <div className="text-xs bg-amber/15 text-amber p-2 rounded-lg border border-amber/30">
                       <strong>Simulator OTP:</strong> {debugOtp}
                     </div>
                   )}
@@ -692,22 +1009,22 @@ const SubmitChallenge = () => {
 
               {/* OTP Error/Success Alerts */}
               {otpError && (
-                <div className="text-xs text-red bg-red-light p-2.5 rounded-xl border border-red-border flex items-center space-x-1.5">
-                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <div className="text-xs text-red bg-red/15 p-3 rounded-lg border border-red/30 flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <span>{otpError}</span>
                 </div>
               )}
               {otpSuccessMsg && otpState === 'verified' && (
-                <div className="text-xs text-green-700 bg-green-light p-2.5 rounded-xl border border-green-border flex items-center space-x-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-green" />
+                <div className="text-xs text-green bg-green/15 p-3 rounded-lg border border-green/30 flex items-center space-x-2">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-green" />
                   <span>{otpSuccessMsg}</span>
                 </div>
               )}
 
               {/* Secondary Contact & Public Attribution Field */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-white/10">
                 <div>
-                  <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
                     Secondary Email (Optional)
                   </label>
                   <input
@@ -715,13 +1032,13 @@ const SubmitChallenge = () => {
                     value={formData.email || ''}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                     placeholder="citizen@example.com (No OTP required)"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#0F223D] border border-slate-700 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
                   />
-                  <span className="text-[10px] text-slate-400">Optional backup channel for email summaries.</span>
+                  <span className="text-xs text-slate-400 mt-1 block">Optional backup channel for email summaries.</span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-semibold text-slate-200 uppercase tracking-wider mb-1.5">
                     Public Attribution Name
                   </label>
                   <input
@@ -729,31 +1046,132 @@ const SubmitChallenge = () => {
                     value={formData.original_reporter_credit}
                     onChange={e => setFormData({ ...formData, original_reporter_credit: e.target.value })}
                     placeholder="e.g. Ramesh Mahto, Ward 4 Representative"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-[#0F223D] border border-slate-700 text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal"
                   />
-                  <span className="text-[10px] text-slate-400">Permanently credited in the Public Innovation Registry.</span>
+                  <span className="text-xs text-slate-400 mt-1 block">Permanently credited in the Public Innovation Registry.</span>
                 </div>
               </div>
             </div>
 
             {/* Submit Button */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-2">
               <button
                 type="submit"
                 disabled={loading || (formData.submitter_type === 'citizen' && otpState !== 'verified')}
-                className="w-full py-3.5 rounded-xl bg-navy hover:bg-navy-light text-white font-bold text-sm transition-all shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3.5 rounded-lg bg-teal hover:bg-teal-hover text-navy font-bold text-sm transition-all shadow-md flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Send className="w-4 h-4 text-teal" />
-                <span>{loading ? 'Submitting Challenge...' : 'Submit Challenge'}</span>
+                <Send className="w-4 h-4 text-navy" />
+                <span>{loading ? 'Submitting Challenge...' : 'Submit Grassroots Challenge'}</span>
               </button>
               {formData.submitter_type === 'citizen' && otpState !== 'verified' && (
-                <p className="text-center text-[11px] text-amber-800 font-medium">
+                <p className="text-center text-xs text-amber font-medium">
                   * Please verify your mobile phone number with OTP to enable submission.
                 </p>
               )}
             </div>
           </form>
         </div>
+      )}
+
+      {/* REAL WEBCAM / CAMERA CAPTURE MODAL */}
+      {isCameraModalOpen && (
+        <BottomSheet
+          isOpen={isCameraModalOpen}
+          onClose={handleCloseCamera}
+          title="Field Evidence Camera"
+          subtitle="Align the civic/societal problem in frame and take a clear snapshot"
+          badge="Live Camera"
+          icon={Camera}
+          maxWidth="xl"
+        >
+          <div className="space-y-4 text-center">
+            {cameraError ? (
+              <div className="p-4 rounded-xl bg-red/15 border border-red/40 text-red text-xs space-y-3">
+                <p>{cameraError}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleCloseCamera();
+                    fileInputRef.current?.click();
+                  }}
+                  className="px-4 py-2 rounded-xl bg-teal text-navy font-bold text-xs"
+                >
+                  Choose from Files / Gallery Instead
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Viewport: Live Video or Captured Snapshot */}
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/20 bg-black flex items-center justify-center shadow-lvl3">
+                  {!capturedPreview ? (
+                    <>
+                      <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                      {/* Viewfinder crosshairs overlay */}
+                      <div className="absolute inset-4 border border-dashed border-teal/40 rounded-xl pointer-events-none flex items-center justify-center">
+                        <div className="w-8 h-8 border-t-2 border-l-2 border-teal absolute top-0 left-0"></div>
+                        <div className="w-8 h-8 border-t-2 border-r-2 border-teal absolute top-0 right-0"></div>
+                        <div className="w-8 h-8 border-b-2 border-l-2 border-teal absolute bottom-0 left-0"></div>
+                        <div className="w-8 h-8 border-b-2 border-r-2 border-teal absolute bottom-0 right-0"></div>
+                      </div>
+                    </>
+                  ) : (
+                    <img
+                      src={capturedPreview}
+                      alt="Captured snapshot"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {/* Hidden off-screen canvas for frame capture */}
+                  <canvas ref={canvasRef} className="hidden" />
+                </div>
+
+                {/* Shutter / Controls */}
+                {!capturedPreview ? (
+                  <div className="flex items-center justify-center space-x-4 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleCaptureSnapshot}
+                      className="w-14 h-14 rounded-full border-4 border-white bg-teal shadow-glow-teal flex items-center justify-center hover:scale-105 active:scale-95 transition-all text-navy"
+                      title="Snap photo"
+                    >
+                      <Camera className="w-6 h-6 text-navy" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center space-x-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleRetakeSnapshot}
+                      className="px-4 py-2.5 rounded-xl border border-white/15 hover:bg-white/[0.08] text-white font-bold text-xs flex items-center space-x-1.5 transition-colors"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-slate-300" />
+                      <span>Retake</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={uploadingPhoto}
+                      onClick={handleConfirmCapturedPhoto}
+                      className="px-5 py-2.5 rounded-xl bg-teal text-navy font-bold text-xs flex items-center space-x-1.5 hover:bg-teal-hover transition-all shadow-glow-teal disabled:opacity-50"
+                    >
+                      {uploadingPhoto ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-navy" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 text-navy" />
+                      )}
+                      <span>{uploadingPhoto ? 'Saving Photo...' : 'Use This Photo'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </BottomSheet>
       )}
     </div>
   );

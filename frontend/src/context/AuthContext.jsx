@@ -8,14 +8,14 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('shodhsetu_user');
-    const token = localStorage.getItem('shodhsetu_token');
+    const savedUser = localStorage.getItem('bharatpanchyt_user');
+    const token = localStorage.getItem('bharatpanchyt_token');
     if (savedUser && token) {
       try {
         setUser(JSON.parse(savedUser));
       } catch (e) {
-        localStorage.removeItem('shodhsetu_user');
-        localStorage.removeItem('shodhsetu_token');
+        localStorage.removeItem('bharatpanchyt_user');
+        localStorage.removeItem('bharatpanchyt_token');
       }
     }
     setLoading(false);
@@ -33,15 +33,15 @@ export const AuthProvider = ({ children }) => {
       district_id: data.district_id,
       token: data.access_token
     };
-    localStorage.setItem('shodhsetu_token', data.access_token);
-    localStorage.setItem('shodhsetu_user', JSON.stringify(userData));
+    localStorage.setItem('bharatpanchyt_token', data.access_token);
+    localStorage.setItem('bharatpanchyt_user', JSON.stringify(userData));
     setUser(userData);
     return userData;
   };
 
   const logout = () => {
-    localStorage.removeItem('shodhsetu_token');
-    localStorage.removeItem('shodhsetu_user');
+    localStorage.removeItem('bharatpanchyt_token');
+    localStorage.removeItem('bharatpanchyt_user');
     setUser(null);
   };
 

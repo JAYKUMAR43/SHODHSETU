@@ -1,4 +1,4 @@
-﻿import hashlib
+import hashlib
 import secrets
 import string
 import logging
@@ -7,9 +7,9 @@ from typing import Dict, List, Optional, Tuple
 from backend.app.core.config import settings
 from backend.app.services.sms_service import send_sms
 
-logger = logging.getLogger("shodhsetu.otp")
+logger = logging.getLogger("bharatpanchyt.otp")
 
-OTP_SALT = "shodhsetu-sih-otp-salt-2026"
+OTP_SALT = "bharatpanchyt-sih-otp-salt-2026"
 OTP_EXPIRY_MINUTES = 5
 TOKEN_EXPIRY_MINUTES = 15
 
@@ -72,7 +72,7 @@ def request_otp(phone: str) -> Tuple[bool, str, Optional[str]]:
     _request_history[clean_phone] = history
 
     # 3. Dispatch SMS
-    sms_text = f"Your ShodhSetu verification code is {otp}. Valid for 5 minutes. Do not share this with anyone."
+    sms_text = f"Your Bharat Panchyt verification code is {otp}. Valid for 5 minutes. Do not share this with anyone."
     send_sms(clean_phone, sms_text)
 
     debug_otp = otp if not settings.SMS_API_KEY else None

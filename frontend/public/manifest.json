@@ -1,0 +1,31 @@
+{
+  "name": "Bharat Panchyt",
+  "short_name": "Bharat Panchyt",
+  "description": "People's Actual Needs Connected With Higher-Education, Youth And Technology",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B2447",
+  "theme_color": "#0B2447",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}

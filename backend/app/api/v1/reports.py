@@ -1,7 +1,7 @@
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, Query, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import get_db
@@ -10,7 +10,7 @@ from backend.app.core.config import settings
 from backend.app.models.models import (
     User, UserRole, Challenge, ChallengeStatus, University, IndustryPartner,
     Proposal, ProposalStatus, IndustryEngagement, OutcomeRecord, VerificationStatus,
-    ChallengeUniversityMatch, ProjectTeam
+    ChallengeUniversityMatch, ProjectTeam, SubmittedReport, PeriodType, District
 )
 from backend.app.services.pdf_service import generate_activity_report_pdf
 
@@ -29,7 +29,7 @@ def generate_report(
     notes = []
 
     if current_user.role == UserRole.GOVERNMENT:
-        org_name = "Department of Higher and Technical Education"
+        org_name = "Department of Higher and Technical Education, Government of Jharkhand"
         total_ch = db.query(Challenge).count()
         validated_ch = db.query(Challenge).filter(Challenge.status.in_([
             ChallengeStatus.VALIDATED, ChallengeStatus.ROUTED, ChallengeStatus.IN_RESEARCH,
@@ -55,16 +55,20 @@ def generate_report(
         ]
 
     elif current_user.role == UserRole.UNIVERSITY:
-        uni = db.query(University).filter(University.id == current_user.organisation_id).first()
-        org_name = uni.name if uni else "Jharkhand State University"
+        uni = None
+        if current_user.organisation_id:
+            uni = db.query(University).filter(University.id == current_user.organisation_id).first()
+        if not uni:
+            uni = db.query(University).first()
+        org_name = uni.name if uni else "Birla Institute of Technology (BIT) Mesra"
         matches_count = db.query(ChallengeUniversityMatch).filter(
-            ChallengeUniversityMatch.university_id == current_user.organisation_id
+            ChallengeUniversityMatch.university_id == (current_user.organisation_id or (uni.id if uni else 1))
         ).count()
         teams_count = db.query(ProjectTeam).filter(
-            ProjectTeam.university_id == current_user.organisation_id
+            ProjectTeam.university_id == (current_user.organisation_id or (uni.id if uni else 1))
         ).count()
         proposals_count = db.query(Proposal).join(ProjectTeam).filter(
-            ProjectTeam.university_id == current_user.organisation_id
+            ProjectTeam.university_id == (current_user.organisation_id or (uni.id if uni else 1))
         ).count()
 
         metrics = {
@@ -81,10 +85,15 @@ def generate_report(
         ]
 
     elif current_user.role == UserRole.INDUSTRY:
-        partner = db.query(IndustryPartner).filter(IndustryPartner.id == current_user.organisation_id).first()
-        org_name = partner.name if partner else "Industry and CSR Partner"
+        partner = None
+        if current_user.organisation_id:
+            partner = db.query(IndustryPartner).filter(IndustryPartner.id == current_user.organisation_id).first()
+        if not partner:
+            partner = db.query(IndustryPartner).first()
+        org_name = partner.name if partner else "Tata Steel Foundation & CSR"
+        partner_id = current_user.organisation_id or (partner.id if partner else 1)
         engagements = db.query(IndustryEngagement).filter(
-            IndustryEngagement.industry_partner_id == current_user.organisation_id
+            IndustryEngagement.industry_partner_id == partner_id
         ).all()
         total_funding = sum(e.funding_amount or 0.0 for e in engagements)
 
@@ -102,7 +111,14 @@ def generate_report(
         ]
 
     elif current_user.role == UserRole.VALIDATION_OFFICER:
-        org_name = f"District STI Nodal Office (District #{current_user.district_id or 1})"
+        district = None
+        if current_user.district_id:
+            district = db.query(District).filter(District.id == current_user.district_id).first()
+        if not district:
+            district = db.query(District).first()
+        district_name = district.name if district else "Ranchi"
+        org_name = f"{district_name} District STI Nodal Directorate"
+
         q_ch = db.query(Challenge)
         if current_user.district_id:
             q_ch = q_ch.filter(Challenge.district_id == current_user.district_id)
@@ -133,12 +149,33 @@ def generate_report(
         summary_notes=notes
     )
 
+    now = datetime.now(timezone.utc)
+    clean_period = period.lower()
+    period_start = now - timedelta(days=7 if clean_period == "weekly" else 30)
+    period_end = now
+
+    # Step 5: Centralize report record with user & institution attribution
+    report_record = SubmittedReport(
+        generated_by_user_id=current_user.id,
+        generated_by_name=f"{org_name} ({current_user.name})" if current_user.name else org_name,
+        generated_by_role=current_user.role,
+        period_type=PeriodType(clean_period),
+        period_start=period_start,
+        period_end=period_end,
+        file_url=report_url,
+        generated_at=now
+    )
+    db.add(report_record)
+    db.commit()
+    db.refresh(report_record)
+
     return {
         "message": f"{period.capitalize()} report generated successfully.",
+        "report_id": report_record.id,
         "report_url": report_url,
         "filename": os.path.basename(report_url),
         "period": period,
-        "generated_at": datetime.now(timezone.utc).isoformat()
+        "generated_at": now.isoformat()
     }
 
 @router.get("/download")
@@ -148,7 +185,13 @@ def download_report(
     db: Session = Depends(get_db)
 ):
     res = generate_report(period=period, current_user=current_user, db=db)
-    rel_path = res["report_url"].lstrip("/")
+    report_url = res["report_url"]
+
+    # If external persistent storage URL, redirect directly
+    if report_url.startswith("http://") or report_url.startswith("https://"):
+        return RedirectResponse(report_url)
+
+    rel_path = report_url.lstrip("/")
     abs_path = os.path.join(settings.UPLOAD_DIR, rel_path.replace("uploads/", ""))
     
     if not os.path.exists(abs_path):

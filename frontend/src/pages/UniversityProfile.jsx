@@ -83,20 +83,20 @@ const UniversityProfile = () => {
   const getSourceBadge = (source) => {
     switch (source) {
       case 'shodhganga_import':
-        return <span className="bg-amber-light text-amber-800 border border-amber-border text-[10px] font-bold px-2 py-0.5 rounded uppercase">Shodhganga Theses Import</span>;
+        return <span className="bg-amber/15 text-amber border border-amber-border text-[10px] font-bold px-2 py-0.5 rounded uppercase">Shodhganga Theses Import</span>;
       case 'scholar_import':
-        return <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Google Scholar Scan</span>;
+        return <span className="bg-blue-500/20 text-blue-400 border border-blue-400/40 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Google Scholar Scan</span>;
       case 'aishe_import':
-        return <span className="bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase">AISHE Catalog</span>;
+        return <span className="bg-purple-500/15 text-purple-400 border border-purple-400/40 text-[10px] font-bold px-2 py-0.5 rounded uppercase">AISHE Catalog</span>;
       case 'manual_review':
         return (
-          <span className="bg-green-light text-green-700 border border-green-border text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center space-x-1">
+          <span className="bg-green/15 text-green border border-green-border text-[10px] font-bold px-2 py-0.5 rounded uppercase flex items-center space-x-1">
             <CheckCircle2 className="w-2.5 h-2.5 text-green" />
             <span>HEI Verified</span>
           </span>
         );
       default:
-        return <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase">{source}</span>;
+        return <span className="bg-white/[0.06] text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase">{source}</span>;
     }
   };
 
@@ -104,24 +104,24 @@ const UniversityProfile = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Top Banner & Profile Completeness */}
       {profile && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="panel-glass p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <div className="flex items-center space-x-2 text-xs font-bold text-teal uppercase tracking-wider mb-1">
               <Layers className="w-4 h-4" />
               <span>Research Graph & Faculty Expertise Provenance</span>
             </div>
-            <h1 className="text-2xl font-heading font-extrabold text-navy">
+            <h1 className="text-2xl font-heading font-extrabold text-white">
               {profile.name} — Expertise Graph
             </h1>
-            <p className="text-slate-600 text-xs sm:text-sm mt-1">
+            <p className="text-slate-300 text-xs sm:text-sm mt-1">
               Automated institutional knowledge ingestion from Shodhganga electronic theses, Google Scholar, and AISHE. Verify or correct tags to maximize challenge matching accuracy.
             </p>
           </div>
 
           <div className="flex items-center space-x-4">
             {/* Completeness Meter */}
-            <div className="bg-canvas border border-slate-200 p-3.5 rounded-xl min-w-[170px]">
-              <div className="flex justify-between items-center text-xs font-bold text-navy mb-1.5">
+            <div className="stat-glass p-3.5 rounded-xl min-w-[170px]">
+              <div className="flex justify-between items-center text-xs font-bold text-white mb-1.5">
                 <span>Completeness</span>
                 <span>{Math.round(profile.profile_completeness_score)}%</span>
               </div>
@@ -137,7 +137,7 @@ const UniversityProfile = () => {
             <button
               onClick={handleTriggerImport}
               disabled={importing}
-              className="px-4 py-2.5 rounded-xl bg-navy hover:bg-navy-light text-white font-bold text-xs transition-colors shadow-sm flex items-center space-x-2 disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl bg-navy hover:bg-navy-light text-white font-bold text-xs transition-colors shadow-float flex items-center space-x-2 disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-teal ${importing ? 'animate-spin' : ''}`} />
               <span>{importing ? 'Ingesting...' : 'Re-sync Shodhganga'}</span>
@@ -148,16 +148,16 @@ const UniversityProfile = () => {
 
       {/* Departments & Faculty Graph Cards */}
       <div className="space-y-6">
-        <h2 className="text-lg font-heading font-bold text-navy">
+        <h2 className="text-lg font-heading font-extrabold text-white">
           Academic Departments & Verified Faculty Profiles
         </h2>
 
         {loading ? (
-          <div className="py-12 text-center text-slate-500 text-xs">Loading institutional expertise graph...</div>
+          <div className="py-12 text-center text-slate-400 text-xs">Loading institutional expertise graph...</div>
         ) : profile?.departments?.length === 0 ? (
-          <div className="bg-white p-12 rounded-xl border border-slate-200 text-center space-y-3">
+          <div className="empty-glass text-center space-y-3">
             <Layers className="w-8 h-8 text-slate-400 mx-auto" />
-            <h3 className="text-sm font-bold text-navy">No departments cataloged yet</h3>
+            <h3 className="text-sm font-bold text-white">No departments cataloged yet</h3>
             <p className="text-xs text-slate-500">Run the automated Shodhganga import to bootstrap your university's departments.</p>
             <button
               onClick={handleTriggerImport}
@@ -171,13 +171,13 @@ const UniversityProfile = () => {
             {profile?.departments?.map(dept => (
               <div 
                 key={dept.id}
-                className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6"
+                className="card-glass space-y-6"
               >
                 {/* Department Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-white/10">
                   <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <h3 className="font-heading font-bold text-base text-navy">
+                      <h3 className="font-heading font-bold text-base text-white">
                         {dept.name}
                       </h3>
                       {getSourceBadge(dept.source)}
@@ -189,7 +189,7 @@ const UniversityProfile = () => {
 
                   <button
                     onClick={() => openEditModal(dept)}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs border border-slate-200 flex items-center space-x-1.5 self-start sm:self-auto transition-colors"
+                    className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.06] text-slate-200 font-semibold text-xs border border-white/10 flex items-center space-x-1.5 self-start sm:self-auto transition-colors"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-teal" />
                     <span>Edit Tags & Verify</span>
@@ -205,7 +205,7 @@ const UniversityProfile = () => {
                     {dept.discipline_tags?.map((tag, idx) => (
                       <span 
                         key={idx}
-                        className="bg-teal/10 text-navy font-semibold text-xs px-2.5 py-1 rounded-md border border-teal/20 flex items-center space-x-1"
+                        className="bg-teal/15 text-teal font-semibold text-xs px-2.5 py-1 rounded-lg border border-teal/30 flex items-center space-x-1"
                       >
                         <Tag className="w-2.5 h-2.5 text-teal" />
                         <span>{tag}</span>
@@ -223,10 +223,10 @@ const UniversityProfile = () => {
                     {dept.faculty_profiles?.map(fac => (
                       <div 
                         key={fac.id}
-                        className="p-3.5 rounded-xl bg-canvas border border-slate-200 space-y-2"
+                        className="p-3.5 rounded-xl stat-glass space-y-2"
                       >
                         <div className="flex justify-between items-start">
-                          <div className="font-bold text-xs text-navy">{fac.name}</div>
+                          <div className="font-bold text-xs text-white">{fac.name}</div>
                           {fac.verified ? (
                             <span className="text-green text-[10px] font-bold flex items-center space-x-0.5">
                               <CheckCircle2 className="w-3 h-3 text-green" />
@@ -239,7 +239,7 @@ const UniversityProfile = () => {
 
                         <div className="flex flex-wrap gap-1">
                           {fac.expertise_tags?.map((et, i) => (
-                            <span key={i} className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
+                            <span key={i} className="text-[10px] bg-white/[0.06] border border-white/10 px-1.5 py-0.5 rounded text-slate-300">
                               {et}
                             </span>
                           ))}
@@ -279,14 +279,14 @@ const UniversityProfile = () => {
         >
           <div className="space-y-4 text-xs">
             <div>
-              <label className="block text-xs font-bold text-navy uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
                 Discipline Expertise Tags
               </label>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {deptTags.map((tag, idx) => (
                   <span 
                     key={idx}
-                    className="bg-slate-100 border border-slate-300 text-xs px-2.5 py-1 rounded-md text-slate-800 flex items-center space-x-1.5"
+                    className="bg-white/[0.06] border border-white/15 text-xs px-2.5 py-1 rounded-md text-white flex items-center space-x-1.5"
                   >
                     <span>{tag}</span>
                     <button
@@ -306,7 +306,7 @@ const UniversityProfile = () => {
                   value={newTag}
                   onChange={e => setNewTag(e.target.value)}
                   placeholder="Add research topic (e.g. Arsenic Mitigation)"
-                  className="flex-1 px-3 py-1.5 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
+                  className="flex-1 px-3 py-1.5 rounded-xl border border-white/15 text-xs focus:outline-none focus:ring-2 focus:ring-teal"
                 />
                 <button
                   type="button"
@@ -318,23 +318,23 @@ const UniversityProfile = () => {
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-green-light border border-green-border text-green-700 text-xs flex items-center space-x-2">
+            <div className="p-3 rounded-xl bg-green/15 border border-green-border text-green text-xs flex items-center space-x-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-green" />
               <span>Saving will mark this department and its faculty profiles as HEI Verified (source: manual_review).</span>
             </div>
 
-            <div className="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+            <div className="flex justify-end space-x-3 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setEditingDept(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200"
+                className="px-4 py-2 rounded-xl bg-white/[0.06] text-slate-300 text-xs font-semibold hover:bg-white/[0.12]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveDepartment}
-                className="px-5 py-2 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-hover transition-all shadow-sm"
+                className="px-5 py-2 rounded-xl bg-teal text-navy font-bold text-xs hover:bg-teal-hover transition-all shadow-float"
               >
                 Confirm & Verify Graph
               </button>

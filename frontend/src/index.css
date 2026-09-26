@@ -4,15 +4,188 @@
 
 @layer base {
   body {
-    @apply bg-[#F8FAFC] text-slate-900 selection:bg-teal selection:text-white;
+    background-color: #0B1728;
+    color: #F1F5F9;
+    font-family: 'Plus Jakarta Sans', Inter, -apple-system, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight;
+    font-family: 'Plus Jakarta Sans', Inter, sans-serif;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+  }
+
+  /* Universal Form Input Base Styling — Eliminates all stark white form boxes */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]),
+  textarea,
+  select {
+    background-color: #11223B !important;
+    color: #F8FAFC !important;
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: 8px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    transition: all 150ms ease-out !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94A3B8 !important;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: none !important;
+    border-color: #2DD4BF !important;
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.22) !important;
+  }
+
+  select option {
+    background-color: #0E1D33 !important;
+    color: #F8FAFC !important;
+    padding: 8px !important;
   }
 }
 
-/* Custom Civics Badges and UI Cards */
-.card-hover {
-  @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+/* ═══════════════════════════════════════════════
+   BHARAT PANCHYT DESIGN SYSTEM (MASTER SPEC)
+   ═══════════════════════════════════════════════ */
+
+/* ── 1. SPACING & RADIUS ──
+   Cards: 12px radius, 16px internal padding
+   Buttons: 8px radius
+   Pills: 9999px (full)
+*/
+.radius-card { border-radius: 12px; }
+.radius-btn { border-radius: 8px; }
+.radius-pill { border-radius: 9999px; }
+
+/* ── 2. ELEVATION SYSTEM (Master Spec) ── */
+/* Level 1: Resting cards */
+.shadow-lvl1 {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22), 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+
+/* Level 2: Interactive card on hover/tap */
+.shadow-lvl2 {
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
+}
+.shadow-lvl2:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.32), 0 2px 4px rgba(0, 0, 0, 0.18);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+/* Level 3: Modals, Dropdowns, Bottom Sheets (SOLID OPAQUE) */
+.shadow-lvl3 {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ── 3. CARD & PANEL SYSTEM ── */
+/* Top-level page region wrapper (Header banners) */
+.panel-glass {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(180deg, #132744 0%, #0F2039 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Standard content cards (resting) */
+.card-glass {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: #11233D;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: transform 150ms ease-out, box-shadow 150ms ease-out, border-color 150ms ease-out;
+}
+
+.card-glass:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.2);
+  border-color: rgba(45, 212, 191, 0.35);
+}
+
+/* Stat Box Component */
+.stat-glass {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0E1D33;
+  padding: 12px 16px;
+  transition: all 150ms ease-out;
+}
+.stat-glass:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: #12243F;
+}
+
+/* Opaque Modal & Dropdown Shell — Zero Text Bleed Through */
+.modal-opaque-shell {
+  background: #0E1F36 !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Ambient Radial Mesh Background */
+.ambient-mesh {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(45, 212, 191, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.06) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(14, 31, 54, 0.5) 0px, transparent 80%),
+    radial-gradient(at 100% 100%, rgba(45, 212, 191, 0.06) 0px, transparent 50%);
+}
+
+/* ── 4. MOTION CATALOG (Master Spec Timings) ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modalEnter {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 200ms ease-out both;
+}
+
+.animate-modal-enter {
+  animation: modalEnter 200ms ease-out both;
+}
+
+.animate-skeleton {
+  animation: skeletonPulse 1.2s ease-in-out infinite;
+}
+
+/* Button click press motion */
+button:active,
+[role="button"]:active {
+  transform: scale(0.97);
+  transition: transform 100ms ease-in;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #0B1728;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E375C;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2DD4BF;
 }

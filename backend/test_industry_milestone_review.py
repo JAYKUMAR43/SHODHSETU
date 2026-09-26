@@ -153,7 +153,7 @@ class TestIndustryMilestoneReview(unittest.TestCase):
         # -------------------------------------------------------------
         # Step 1: University marks milestone completed with evidence URL
         # -------------------------------------------------------------
-        evidence_url = "https://shodhsetu.jh.gov.in/evidence/fl_isotherm_test_v1.pdf"
+        evidence_url = "https://bharatpanchyt.jh.gov.in/evidence/fl_isotherm_test_v1.pdf"
         resp = self.client.patch(
             f"/api/v1/university/milestones/{self.milestone.id}/complete",
             headers=self.uni_headers,
@@ -242,7 +242,7 @@ class TestIndustryMilestoneReview(unittest.TestCase):
         # -------------------------------------------------------------
         # Step 6: University Re-Submits post-revision (Loop verification)
         # -------------------------------------------------------------
-        revised_evidence_url = "https://shodhsetu.jh.gov.in/evidence/fl_isotherm_24h_telemetry_v2.pdf"
+        revised_evidence_url = "https://bharatpanchyt.jh.gov.in/evidence/fl_isotherm_24h_telemetry_v2.pdf"
         resubmit_resp = self.client.patch(
             f"/api/v1/university/milestones/{self.milestone.id}/complete",
             headers=self.uni_headers,

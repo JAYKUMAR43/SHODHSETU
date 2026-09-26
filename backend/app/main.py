@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.app.core.config import settings
 from backend.app.core.database import Base, engine, migrate_schema
 from backend.app.api.v1 import (
-    auth, challenges, registry, university, industry, validation, admin, notifications, reports, otp
+    auth, challenges, registry, university, industry, validation, admin, notifications, reports, otp, storage
 )
 
 # Auto-create tables on launch and run non-destructive schema migrations
@@ -23,7 +23,7 @@ migrate_schema(engine)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="ShodhSetu — Societal Innovation Collaboration Portal for SIH 2026 (Government of Jharkhand)",
+    description="Bharat Panchyt — People's Actual Needs Connected With Higher-Education, Youth And Technology | Govt. of Jharkhand",
     version="1.0.0"
 )
 
@@ -51,12 +51,13 @@ app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(notifications.router, prefix=settings.API_V1_STR)
 app.include_router(reports.router, prefix=settings.API_V1_STR)
 app.include_router(otp.router, prefix=settings.API_V1_STR)
+app.include_router(storage.router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy",
-        "service": "ShodhSetu API",
+        "service": "Bharat Panchyt API",
         "environment": "active",
         "database": settings.DATABASE_URL.split("://")[0]
     }

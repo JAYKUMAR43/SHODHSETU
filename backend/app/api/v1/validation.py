@@ -173,7 +173,7 @@ def update_challenge_validation(
             try:
                 send_sms(
                     challenge.submitter_contact,
-                    f"Your ShodhSetu report {challenge.tracking_id} has been approved and is being processed."
+                    f"Your Bharat Panchyt report {challenge.tracking_id} has been approved and is being processed."
                 )
             except Exception:
                 pass
@@ -201,11 +201,11 @@ def update_challenge_validation(
             )
             # Trigger SMS Lifecycle Moment 3: District Validation Officer Rejection
             try:
-                track_url = f"https://shodhsetu.jharkhand.gov.in/track/{challenge.tracking_id}"
+                track_url = f"https://bharatpanchyt.vercel.app/track/{challenge.tracking_id}"
                 reason = payload.rejection_reason or "Does not meet validation criteria"
                 send_sms(
                     challenge.submitter_contact,
-                    f"Your ShodhSetu report {challenge.tracking_id} was not approved. Reason: {reason}. See details: {track_url}"
+                    f"Your Bharat Panchyt report {challenge.tracking_id} was not approved. Reason: {reason}. See details: {track_url}"
                 )
             except Exception:
                 pass
@@ -416,7 +416,7 @@ def route_challenge_to_university(
             try:
                 send_sms(
                     u.phone,
-                    f"New matched challenge routed to your institution: {challenge.title} ({challenge.tracking_id}). Review in your ShodhSetu portal."
+                    f"New matched challenge routed to your institution: {challenge.title} ({challenge.tracking_id}). Review in your Bharat Panchyt portal."
                 )
             except Exception:
                 pass

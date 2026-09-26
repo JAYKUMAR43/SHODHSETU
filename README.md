@@ -1,13 +1,17 @@
-# ShodhSetu (शोध सेतु) — Societal Innovation Collaboration Portal
+# Bharat Panchyt (भारत पंचायत)
 
-**Smart India Hackathon 2026** | **Government of Jharkhand**
+**People's Actual Needs Connected With Higher-Education, Youth And Technology**
+
+*An AI-powered platform that connects people's real-world problems with the right research expertise, funding and implementation.*
+
+**Smart India Hackathon 2026** | **Government of Jharkhand**  
 *Department of Higher and Technical Education*
 
 ---
 
 ## Overview
 
-**ShodhSetu** is a societal innovation portal engineered to connect citizen-reported grassroots challenges across Jharkhand to the research capacity of Higher Education Institutions (HEIs) and the execution capital of Corporate Social Responsibility (CSR) and industry partners, under district administrative governance.
+**Bharat Panchyt** is a societal innovation platform engineered to connect citizen-reported grassroots challenges across Jharkhand to the research capacity of Higher Education Institutions (HEIs) and the execution capital of Corporate Social Responsibility (CSR) and industry partners, under district administrative governance.
 
 ---
 
@@ -32,7 +36,7 @@
   2. **Bilateral Collaborative Research Framework** (50:50 joint ownership with 24-month commercial first right of refusal)
   3. **Industry-Sponsored Tech-Transfer Framework** (80:20 split with perpetual academic publication rights)
 - Supports custom terms override with uploaded document linkage.
-- Instant, signed legal PDF download on-demand.
+- Instant, signed legal PDF download on-demand with persistent cloud storage integration.
 
 ### 4. Algorithmic Trust Score Engine
 - Evaluates Universities and Industry Partners on completion rate (%), average delivery delay (days), and independent outcome ratings.
@@ -47,7 +51,7 @@
 ## Tech Stack
 
 - **Frontend**: React 18, Vite, Tailwind CSS, Lucide Icons, React Router 6, Axios
-- **Backend**: FastAPI (Python 3.14 compatible), SQLAlchemy ORM, SQLite / PostgreSQL (swappable via `DATABASE_URL`), PyJWT, bcrypt, ReportLab PDF Engine
+- **Backend**: FastAPI (Python 3.14 compatible), SQLAlchemy ORM, SQLite / PostgreSQL (swappable via `DATABASE_URL`), PyJWT, bcrypt, ReportLab PDF Engine, Vercel Blob persistent storage integration
 - **AI Engine**: Google Gemini API (`gemini-2.5-flash` for real-time classification/brief synthesis and `gemini-2.5-pro` for daily executive briefings) with strict 8-second timeouts and heuristic fallback modes
 - **Design Language**: Institutional Navy (`#0B2447`), Civic Teal (`#19A7CE`), Amber (`#F4B400`), Verified Green (`#2ECC71`), Red Flagged (`#E74C3C`), Inter & Manrope fonts
 

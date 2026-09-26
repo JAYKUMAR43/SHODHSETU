@@ -24,7 +24,7 @@ router = APIRouter(tags=["Challenges & Public"])
 
 def generate_tracking_id() -> str:
     num = random.randint(1000, 9999)
-    return f"SS-{num}"
+    return f"BP-{num}"
 
 @router.get("/districts", response_model=List[DistrictResponse])
 def get_districts(db: Session = Depends(get_db)):
@@ -142,10 +142,10 @@ def submit_challenge(
     # Trigger SMS Lifecycle Moment 1: Challenge Submission Confirmation
     if challenge.submitter_contact:
         try:
-            track_url = f"https://shodhsetu.jharkhand.gov.in/track/{challenge.tracking_id}"
+            track_url = f"https://bharatpanchyt.vercel.app/track/{challenge.tracking_id}"
             send_sms(
                 challenge.submitter_contact,
-                f"Your ShodhSetu report has been submitted. Tracking ID: {challenge.tracking_id}. Check status anytime at {track_url}"
+                f"Your Bharat Panchyt report has been submitted. Tracking ID: {challenge.tracking_id}. Check status anytime at {track_url}"
             )
         except Exception:
             pass

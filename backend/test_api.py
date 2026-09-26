@@ -22,7 +22,7 @@ from backend.app.models.models import (
 from backend.app.services.trust_score_service import compute_trust_score
 from backend.app.services.gemini_service import gemini_service
 
-class TestShodhSetu(unittest.TestCase):
+class TestBharatPanchyt(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = TestClient(app)
@@ -81,7 +81,7 @@ class TestShodhSetu(unittest.TestCase):
         })
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
-        self.assertTrue(data["tracking_id"].startswith("SS-"))
+        self.assertTrue(data["tracking_id"].startswith("BP-"))
         self.assertEqual(data["status"], "ai_prescreened")
 
         # Public Tracking lookup
